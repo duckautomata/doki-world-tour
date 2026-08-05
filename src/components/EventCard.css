@@ -1,0 +1,130 @@
+.event-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.event-card-media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--checkerboard);
+}
+
+.event-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.event-card-placeholder {
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.event-card-date {
+    position: absolute;
+    left: 0.6rem;
+    bottom: 0.6rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 999px;
+    color: #fff;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.event-card-date.visited {
+    background: rgba(5, 150, 105, 0.85);
+}
+
+.event-card-date.upcoming {
+    background: rgba(217, 119, 6, 0.88);
+}
+
+.event-card-body {
+    flex: 1;
+    padding: 0.9rem 1rem 0.4rem;
+}
+
+.event-card-name {
+    margin: 0 0 0.3rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.event-card-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0 0 0.45rem;
+}
+
+.event-card-type-chip {
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 999px;
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    white-space: nowrap;
+}
+
+.event-card-venue {
+    margin: 0 0 0.15rem;
+    font-size: 0.85rem;
+}
+
+.event-card-location {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.event-card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem 0.9rem;
+}
+
+.event-card-map-btn {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 0.45rem 0.8rem;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.event-card-map-btn:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.event-card-edit {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.event-card-edit:hover {
+    color: var(--accent);
+}

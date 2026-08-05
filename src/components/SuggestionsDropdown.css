@@ -1,0 +1,109 @@
+.suggestions-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.suggestions-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.suggestions-btn:hover {
+    background: var(--panel-bg);
+}
+
+.suggestions-btn.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.dropdown-arrow {
+    font-size: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    border-radius: 12px;
+    z-index: 200;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    animation: dropdownFade 0.2s ease;
+    background: var(--modal-overlay-bg);
+}
+
+@keyframes dropdownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.external-link-icon {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.dropdown-item:hover .external-link-icon {
+    opacity: 1;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--accent-hover);
+}
+
+[data-theme="light"] .dropdown-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 600px) {
+    .suggestions-btn {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.9rem;
+        gap: 0.3rem;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        right: 0;
+        left: auto;
+        min-width: 200px;
+    }
+}

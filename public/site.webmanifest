@@ -1,0 +1,28 @@
+{
+    "name": "Doki's World Tour",
+    "short_name": "Doki World",
+    "description": "An interactive world map displaying all the events Doki has been to over the years.",
+    "start_url": "/doki-world-tour/",
+    "scope": "/doki-world-tour/",
+    "icons": [
+        {
+            "src": "/doki-world-tour/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/doki-world-tour/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/doki-world-tour/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "theme_color": "#10b981",
+    "background_color": "#047857",
+    "display": "standalone"
+}

@@ -1,0 +1,66 @@
+.unsaved-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: unsavedFade 0.15s ease-out;
+}
+
+.unsaved-modal {
+    max-width: 440px;
+    width: 100%;
+    padding: 1.5rem 1.5rem 1.25rem;
+    background: var(--bg-color);
+    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+    animation: unsavedRise 0.2s ease-out;
+}
+
+.unsaved-modal-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.unsaved-modal-message {
+    margin: 0 0 1.25rem 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.unsaved-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+@keyframes unsavedFade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes unsavedRise {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,232 @@
+.home-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.home-hero {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.home-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.35rem;
+    background: var(--hero-title-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.home-subtitle {
+    margin: 0 auto;
+    max-width: 560px;
+    font-size: 1rem;
+}
+
+/* Controls panel */
+
+.map-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+}
+
+.map-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.map-search {
+    position: relative;
+    flex: 1 1 240px;
+    min-width: 0;
+}
+
+.map-select {
+    flex-shrink: 0;
+    max-width: 40%;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .map-select {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.map-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.18);
+}
+
+/* The select itself is translucent, but the native option popup composites
+   that onto a light base, give options solid theme colors so dark mode
+   isn't light-on-light. */
+.map-select option {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
+.map-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem 2.5rem 0.7rem 1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .map-search-input {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.map-search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.18);
+}
+
+.map-search-input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.map-controls-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.result-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.reset-filters-btn {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+/* Map section */
+
+.map-section {
+    position: relative;
+    height: clamp(340px, 62vh, 640px);
+    scroll-margin-top: 90px;
+    border-radius: 16px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    overflow: hidden;
+}
+
+/* Event list */
+
+.event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.list-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.list-toggle-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.list-toggle-arrow {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.event-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+}
+
+.empty-state {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .home-title {
+        font-size: 1.7rem;
+    }
+
+    /* Search takes the full first line; the two selects share the second.
+       Keep this a wrapping row, switching to a column would turn
+       .map-search's flex-basis into a forced height. */
+    .map-filter-row {
+        gap: 0.6rem;
+    }
+
+    .map-search {
+        flex: 1 1 100%;
+    }
+
+    .map-select {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: none;
+        box-sizing: border-box;
+    }
+
+    .map-section {
+        height: clamp(320px, 55vh, 520px);
+    }
+
+    .map-controls {
+        padding: 0.85rem 1rem;
+    }
+}

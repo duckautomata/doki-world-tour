@@ -1,0 +1,90 @@
+.date-range-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.range-label-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.range-label-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+
+.range-track {
+    position: relative;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    /* Vertical page scroll must not hijack a horizontal handle drag. */
+    touch-action: none;
+    /* Breathing room so the handles' hit areas stay inside the panel. */
+    margin: 14px 12px;
+    cursor: pointer;
+}
+
+.range-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    pointer-events: none;
+}
+
+.range-handle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg-color);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+    cursor: grab;
+    touch-action: none;
+    transition: box-shadow 0.15s ease;
+}
+
+/* Enlarged invisible hit area for touch */
+.range-handle::before {
+    content: "";
+    position: absolute;
+    inset: -11px;
+    border-radius: 50%;
+}
+
+.range-handle:active {
+    cursor: grabbing;
+}
+
+.range-handle:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 4px rgba(16, 185, 129, 0.35),
+        0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+.range-bounds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}

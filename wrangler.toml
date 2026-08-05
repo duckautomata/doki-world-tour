@@ -1,0 +1,26 @@
+name = "doki-world-tour-app"
+compatibility_date = "2026-03-12"
+main = "./src/worker.js"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[[routes]]
+pattern = "www.duck-automata.com/doki-world-tour"
+zone_name = "duck-automata.com"
+
+[[routes]]
+pattern = "www.duck-automata.com/doki-world-tour/*"
+zone_name = "duck-automata.com"
+
+[env.dev]
+name = "doki-world-tour-dev"
+
+[[env.dev.routes]]
+pattern = "dev.duck-automata.com/doki-world-tour"
+zone_name = "duck-automata.com"
+
+[[env.dev.routes]]
+pattern = "dev.duck-automata.com/doki-world-tour/*"
+zone_name = "duck-automata.com"
