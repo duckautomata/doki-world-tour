@@ -20,6 +20,7 @@ const FIELD_LABELS = {
     date: "date",
     event_name: "name",
     event_type: "event type",
+    image_source: "image source",
     place: "venue",
     city: "city",
     country: "country",
@@ -61,6 +62,7 @@ export default function EditEvent({ data }) {
     const [localPreviewUrl, setLocalPreviewUrl] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
     const [removeImage, setRemoveImage] = useState(false);
+    const [imageSource, setImageSource] = useState(event?.image_source ?? "");
 
     // `null` = waiting on the widget; `""` = Turnstile disabled by the server
     // (submit-ready immediately); any other string = an actual issued token.
@@ -156,8 +158,9 @@ export default function EditEvent({ data }) {
         if (isValidCoordinate(longitude, 180) && Number(longitude.trim()) !== event.longitude) {
             changes.longitude = longitude.trim();
         }
+        if (imageSource.trim() !== (event.image_source ?? "")) changes.image_source = imageSource.trim();
         return changes;
-    }, [event, name, types, date, place, city, country, latitude, longitude]);
+    }, [event, name, types, date, place, city, country, latitude, longitude, imageSource]);
 
     if (!event) {
         return (
@@ -569,6 +572,25 @@ export default function EditEvent({ data }) {
                                         />
                                         Suggest removing the current image
                                     </label>
+                                )}
+                                {(event.urlThumb || pickedFile !== null || uploadedImage !== null) && !removeImage && (
+                                    <div className="suggestion-image-source-field">
+                                        <label className="suggestion-field-label" htmlFor="edit-image-source">
+                                            Image Source{" "}
+                                            <span className="suggestion-field-hint">
+                                                (link or credit for the image)
+                                            </span>
+                                        </label>
+                                        <input
+                                            id="edit-image-source"
+                                            className="suggestion-input"
+                                            type="text"
+                                            value={imageSource}
+                                            onChange={(e) => setImageSource(e.target.value)}
+                                            placeholder="https://x.com/… or @artist"
+                                            maxLength={500}
+                                        />
+                                    </div>
                                 )}
                             </div>
 

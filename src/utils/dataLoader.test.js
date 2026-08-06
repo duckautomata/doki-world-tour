@@ -11,11 +11,11 @@ import {
 } from "./dataLoader";
 
 const CSV = [
-    "date,event_name,event_type,place,city,country,latitude,longitude,image_id,image_ext",
-    '7/2/2026,Anime Expo 2026,"Meet & Greet, Panel",Los Angeles Convention Center,Los Angeles,USA,34.0403213,-118.2695652,tjpVRHP9,.webp',
-    "7/4/2026,DOKI DOKI: REWIND TIME,Concert,The Vermont Hollywood,Los Angeles,USA,34.0903998,-118.2914843,pGSAo5DP,.webp",
-    "5/30/2026,Dokomi 2026  ,Convention,CCD Congress Center,Düsseldorf,Germany,51.2559613,6.7417614,,",
-    ",OffKai Expo Gen 3,Convention,San Jose McEnery Convention Center,San Jose,USA,37.3291386,-121.8890110,,",
+    "date,event_name,event_type,place,city,country,latitude,longitude,image_id,image_ext,image_source",
+    '7/2/2026,Anime Expo 2026,"Meet & Greet, Panel",Los Angeles Convention Center,Los Angeles,USA,34.0403213,-118.2695652,tjpVRHP9,.webp,https://x.com/animeexpo/status/1',
+    "7/4/2026,DOKI DOKI: REWIND TIME,Concert,The Vermont Hollywood,Los Angeles,USA,34.0903998,-118.2914843,pGSAo5DP,.webp,",
+    "5/30/2026,Dokomi 2026  ,Convention,CCD Congress Center,Düsseldorf,Germany,51.2559613,6.7417614,,,",
+    ",OffKai Expo Gen 3,Convention,San Jose McEnery Convention Center,San Jose,USA,37.3291386,-121.8890110,,,",
 ].join("\n");
 
 describe("parseEventDate", () => {
@@ -81,7 +81,9 @@ describe("loadEventData", () => {
         expect(data[1].eventTypes).toEqual(["Meet & Greet", "Panel"]); // quoted multi-type split
         expect(data[1].latitude).toBeCloseTo(34.0403213);
         expect(data[1].urlWebp).toMatch(/tjpVRHP9_p\.webp$/);
+        expect(data[1].image_source).toBe("https://x.com/animeexpo/status/1");
         expect(data[2].eventTypes).toEqual(["Concert"]);
+        expect(data[2].image_source).toBe("");
     });
 
     it("returns an empty list when the fetch fails", async () => {

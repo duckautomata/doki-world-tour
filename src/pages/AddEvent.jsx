@@ -32,6 +32,7 @@ export default function AddEvent() {
     const [pickedFile, setPickedFile] = useState(null);
     const [localPreviewUrl, setLocalPreviewUrl] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
+    const [imageSource, setImageSource] = useState("");
 
     // `null` = waiting on the widget; `""` = Turnstile disabled by the server
     // (submit-ready immediately); any other string = an actual issued token.
@@ -126,7 +127,8 @@ export default function AddEvent() {
         city.trim().length === 0 &&
         country.trim().length === 0 &&
         pickedFile === null &&
-        uploadedImage === null;
+        uploadedImage === null &&
+        imageSource.trim().length === 0;
 
     // A valid in-progress entry is submitted along with the queue; a
     // half-filled one blocks submission so it can't be lost silently.
@@ -145,6 +147,7 @@ export default function AddEvent() {
         city: city.trim(),
         country: country.trim(),
         uploadedImage,
+        imageSource: imageSource.trim(),
     });
 
     const clearEntryFields = () => {
@@ -156,6 +159,7 @@ export default function AddEvent() {
         setCountry("");
         setPickedFile(null);
         setUploadedImage(null);
+        setImageSource("");
         setError(null);
     };
 
@@ -185,6 +189,7 @@ export default function AddEvent() {
         setCity(entry.city);
         setCountry(entry.country);
         setUploadedImage(entry.uploadedImage);
+        setImageSource(entry.imageSource);
         setBatch((prev) => prev.filter((_, i) => i !== index));
         setError(null);
     };
@@ -205,6 +210,7 @@ export default function AddEvent() {
         if (busy) return;
         setPickedFile(null);
         setUploadedImage(null);
+        setImageSource("");
         setError(null);
     };
 
@@ -224,6 +230,7 @@ export default function AddEvent() {
         place: entry.place,
         city: entry.city,
         country: entry.country,
+        image_source: entry.imageSource,
         image: entry.uploadedImage
             ? { image_id: entry.uploadedImage.id, file_name: entry.uploadedImage.file_name }
             : null,
@@ -489,6 +496,23 @@ export default function AddEvent() {
                             hint="Shown as the event's heading image"
                             disabled={busy === "submitting"}
                         />
+                        {(pickedFile !== null || uploadedImage !== null) && (
+                            <div className="suggestion-image-source-field">
+                                <label className="suggestion-field-label" htmlFor="add-image-source">
+                                    Image Source{" "}
+                                    <span className="suggestion-field-hint">(link or credit for the image)</span>
+                                </label>
+                                <input
+                                    id="add-image-source"
+                                    className="suggestion-input"
+                                    type="text"
+                                    value={imageSource}
+                                    onChange={(e) => setImageSource(e.target.value)}
+                                    placeholder="https://x.com/… or @artist"
+                                    maxLength={500}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="suggestion-batch-section">

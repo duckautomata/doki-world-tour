@@ -143,7 +143,7 @@
     text-overflow: ellipsis;
 }
 
-.city-sheet-item-edit {
+.city-sheet-item-view {
     flex-shrink: 0;
     font-size: 0.8rem;
     font-weight: 600;
@@ -154,7 +154,7 @@
     transition: all 0.2s ease;
 }
 
-.city-sheet-item-edit:hover {
+.city-sheet-item-view:hover {
     color: var(--accent);
     border-color: var(--accent);
 }

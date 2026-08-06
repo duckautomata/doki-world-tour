@@ -1047,3 +1047,11 @@
 .suggestion-checkbox-group .suggestion-checkbox-label {
     margin-top: 0;
 }
+
+/* Image source input tucked under the dropzone */
+.suggestion-image-source-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}

@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { formatEventDate } from "../utils/dataLoader";
+import ImageModal from "./ImageModal";
 import "./EventCard.css";
 
 /**
@@ -7,29 +9,45 @@ import "./EventCard.css";
  */
 
 /**
- * EventCard shows one event in the list under the map.
+ * EventCard shows one event in the list under the map. Clicking the image
+ * opens it full-size in the image modal.
  *
  * @param {Object} props
  * @param {EventData} props.event
  * @param {() => void} props.onShowOnMap selects this event's city marker
+ * @param {boolean} [props.highlighted] flashes the card (used by the city sheet's View jump)
  */
-export default function EventCard({ event, onShowOnMap }) {
+export default function EventCard({ event, onShowOnMap, highlighted = false }) {
+    const [modalOpen, setModalOpen] = useState(false);
     const isUpcoming = event.dateValue >= new Date().setHours(0, 0, 0, 0);
 
     return (
-        <article className="event-card glass-panel">
+        <article
+            id={`event-${event.event_id}`}
+            className={`event-card glass-panel${highlighted ? " highlighted" : ""}`}
+        >
             <div className="event-card-media">
                 {event.urlWebp && (
-                    <img
-                        src={event.urlWebp}
-                        alt={event.event_name}
-                        className="event-card-image"
-                        loading="lazy"
-                        onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.nextElementSibling.style.display = "flex";
-                        }}
-                    />
+                    <button
+                        type="button"
+                        className="event-card-image-btn"
+                        onClick={() => setModalOpen(true)}
+                        aria-label={`View image for ${event.event_name}`}
+                    >
+                        <img
+                            src={event.urlWebp}
+                            alt={event.event_name}
+                            className="event-card-image"
+                            loading="lazy"
+                            onError={(e) => {
+                                const placeholder = e.target
+                                    .closest(".event-card-media")
+                                    .querySelector(".event-card-placeholder");
+                                e.target.closest(".event-card-image-btn").style.display = "none";
+                                placeholder.style.display = "flex";
+                            }}
+                        />
+                    </button>
                 )}
                 <div className="event-card-placeholder" style={{ display: event.urlWebp ? "none" : "flex" }}>
                     <span>{event.event_name.charAt(0)}</span>
@@ -63,6 +81,7 @@ export default function EventCard({ event, onShowOnMap }) {
                     Suggest edit
                 </Link>
             </div>
+            {modalOpen && <ImageModal event={event} onClose={() => setModalOpen(false)} />}
         </article>
     );
 }

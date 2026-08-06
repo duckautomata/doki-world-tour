@@ -163,6 +163,7 @@ export const loadEventData = async () => {
                 event_id,
                 event_name,
                 eventTypes: parseEventTypes(row.event_type),
+                image_source: (row.image_source ?? "").trim(),
                 place: (row.place ?? "").trim(),
                 city: (row.city ?? "").trim(),
                 country: (row.country ?? "").trim(),

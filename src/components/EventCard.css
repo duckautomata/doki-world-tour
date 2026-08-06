@@ -18,11 +18,39 @@
     background: var(--checkerboard);
 }
 
+.event-card-image-btn {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: zoom-in;
+}
+
 .event-card-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+/* Flash when the city sheet's View button jumps here. Bright yellow (not the
+   theme accent) so the landed-on card is unmissable among green chips. */
+.event-card.highlighted {
+    animation: cardFlash 4s ease-out;
+}
+
+@keyframes cardFlash {
+    0%,
+    70% {
+        box-shadow:
+            0 0 0 4px #facc15,
+            0 0 18px rgba(250, 204, 21, 0.6);
+    }
+
+    100% {
+        box-shadow:
+            0 0 0 0 rgba(250, 204, 21, 0),
+            0 0 0 rgba(250, 204, 21, 0);
+    }
 }
 
 .event-card-placeholder {

@@ -15,6 +15,7 @@ export interface EventData {
     longitude: number;
     image_id: string;
     image_ext: string;
+    image_source: string;
     urlOrig: string | null;
     urlWebp: string | null;
     urlThumb: string | null;

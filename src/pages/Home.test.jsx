@@ -32,6 +32,7 @@ const events = [
         longitude: 6.7417614,
         image_id: "",
         image_ext: "",
+        image_source: "",
         urlOrig: null,
         urlWebp: null,
         urlThumb: null,
@@ -49,6 +50,7 @@ const events = [
         longitude: -118.2914843,
         image_id: "abc",
         image_ext: ".webp",
+        image_source: "https://x.com/dokibird/status/123",
         urlOrig: "https://cdn.example/abc.webp",
         urlWebp: "https://cdn.example/abc_p.webp",
         urlThumb: "https://cdn.example/abc_t.webp",
@@ -151,5 +153,37 @@ describe("Home", () => {
         renderHome();
         openList();
         expect(screen.getAllByRole("link", { name: "Suggest edit" })[0]).toHaveAttribute("href", "/edit/dokomi-2026");
+    });
+
+    it("opens the image modal from a card image, showing its source link", () => {
+        renderHome();
+        openList();
+        fireEvent.click(screen.getByRole("button", { name: "View image for Rewind Time" }));
+        expect(screen.getByRole("button", { name: /Download Original/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Source/ })).toHaveAttribute(
+            "href",
+            "https://x.com/dokibird/status/123",
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Close" }));
+        expect(screen.queryByRole("button", { name: /Download Original/ })).not.toBeInTheDocument();
+    });
+
+    it("has no image button on cards without an image", () => {
+        renderHome();
+        openList();
+        expect(screen.queryByRole("button", { name: "View image for Dokomi" })).not.toBeInTheDocument();
+    });
+
+    it("jumps from the city sheet's View button to the event card in the list", () => {
+        const { container } = renderHome();
+        // Tap the Düsseldorf marker (first group, list still collapsed).
+        fireEvent.click(container.querySelector(".map-marker"));
+        expect(screen.queryByRole("link", { name: "Suggest edit" })).not.toBeInTheDocument(); // list closed
+        fireEvent.click(screen.getByRole("button", { name: "View Dokomi in the list" }));
+
+        const card = document.getElementById("event-dokomi-2026");
+        expect(card).not.toBeNull(); // list opened automatically
+        expect(card.classList.contains("highlighted")).toBe(true);
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
     });
 });

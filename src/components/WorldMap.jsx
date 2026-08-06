@@ -145,6 +145,11 @@ export default function WorldMap({ groups, selectedKey, onSelect }) {
 
     const todayStart = useMemo(() => new Date().setHours(0, 0, 0, 0), []);
     const k = transform.k;
+    // Dividing marker sizes by k would keep them a constant screen size; a
+    // sublinear power instead lets them GROW on screen as you zoom in
+    // (screen radius = base * k^0.4), which makes them much easier to tap on
+    // phones once zoomed into a region.
+    const markerScale = Math.pow(k, 0.75);
 
     return (
         <div className="world-map" ref={containerRef}>
@@ -176,10 +181,14 @@ export default function WorldMap({ groups, selectedKey, onSelect }) {
                             >
                                 <title>{label}</title>
                                 {/* Oversized invisible hit area for touch */}
-                                <circle className="marker-hit" r={16 / k} />
-                                <circle className="marker-dot" r={(selected ? 9.5 : 7.5) / k} strokeWidth={1.6 / k} />
+                                <circle className="marker-hit" r={22 / markerScale} />
+                                <circle
+                                    className="marker-dot"
+                                    r={(selected ? 10.5 : 8.5) / markerScale}
+                                    strokeWidth={1.6 / markerScale}
+                                />
                                 {count > 1 && (
-                                    <text className="marker-count" fontSize={8.5 / k} dy={3 / k}>
+                                    <text className="marker-count" fontSize={9.5 / markerScale} dy={3.3 / markerScale}>
                                         {count}
                                     </text>
                                 )}
