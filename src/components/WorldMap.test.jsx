@@ -55,4 +55,28 @@ describe("WorldMap", () => {
         expect(screen.getByRole("button", { name: "Zoom out" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Reset view" })).toBeInTheDocument();
     });
+
+    it("switches projections, redrawing the world and repositioning markers", () => {
+        const { container } = render(<WorldMap groups={groups} selectedKey={null} onSelect={() => {}} />);
+        const select = screen.getByLabelText("Map projection");
+        expect([...select.options].map((o) => o.textContent)).toEqual([
+            "Equal Earth",
+            "Natural Earth",
+            "Robinson",
+            "Winkel Tripel",
+            "Mollweide",
+            "Mercator",
+            "Miller",
+            "Equirectangular",
+        ]);
+        const landBefore = container.querySelector(".map-land").getAttribute("d");
+        const markerBefore = container.querySelector(".map-marker").getAttribute("transform");
+        const viewBoxBefore = container.querySelector("svg").getAttribute("viewBox");
+
+        fireEvent.change(select, { target: { value: "mollweide" } });
+
+        expect(container.querySelector(".map-land").getAttribute("d")).not.toBe(landBefore);
+        expect(container.querySelector(".map-marker").getAttribute("transform")).not.toBe(markerBefore);
+        expect(container.querySelector("svg").getAttribute("viewBox")).not.toBe(viewBoxBefore);
+    });
 });

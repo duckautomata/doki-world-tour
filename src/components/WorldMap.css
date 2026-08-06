@@ -94,6 +94,39 @@
 
 /* Overlay controls */
 
+.map-projection-select {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 5;
+    padding: 0.45rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--nav-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-projection-select:hover,
+.map-projection-select:focus {
+    color: var(--accent);
+    border-color: var(--accent);
+    outline: none;
+}
+
+/* Solid option colors — the native popup composites translucent backgrounds
+   onto a light base, which reads light-on-light in dark mode. */
+.map-projection-select option {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
 .map-zoom-controls {
     position: absolute;
     top: 0.75rem;
