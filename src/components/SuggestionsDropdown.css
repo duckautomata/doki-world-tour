@@ -29,6 +29,10 @@
     font-weight: 600;
 }
 
+.suggestions-label-short {
+    display: none;
+}
+
 .dropdown-arrow {
     font-size: 0.7rem;
     transition: transform 0.2s ease;
@@ -98,6 +102,14 @@
         padding: 0.5rem 0.6rem;
         font-size: 0.9rem;
         gap: 0.3rem;
+    }
+
+    .suggestions-label-full {
+        display: none;
+    }
+
+    .suggestions-label-short {
+        display: inline;
     }
 
     .dropdown-menu {

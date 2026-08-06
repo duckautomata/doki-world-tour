@@ -1,0 +1,41 @@
+.animate-map {
+    width: 100%;
+}
+
+.animate-map-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.animate-trail-dot {
+    fill: var(--accent);
+    opacity: 0.55;
+}
+
+.animate-active-dot {
+    fill: #facc15;
+    stroke: var(--bg-color);
+    stroke-width: 1.5;
+}
+
+.animate-active-pulse {
+    fill: none;
+    stroke: #facc15;
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: animatePulse 1.2s ease-out infinite;
+}
+
+@keyframes animatePulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: scale(2.4);
+        opacity: 0;
+    }
+}

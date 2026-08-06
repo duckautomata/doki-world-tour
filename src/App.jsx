@@ -85,6 +85,9 @@ export default function App() {
                         <NavLink to="/" end className="nav-link nav-home">
                             Map
                         </NavLink>
+                        <NavLink to="/animate" className="nav-link">
+                            Animate
+                        </NavLink>
                         <EnvironmentBadge className="mobile-only" />
                         <MockApiBadge className="mobile-only" />
                         <SuggestionsDropdown />

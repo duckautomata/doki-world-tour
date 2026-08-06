@@ -28,7 +28,8 @@ export default function SuggestionsDropdown() {
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
             >
-                Suggestions
+                <span className="suggestions-label-full">Suggestions</span>
+                <span className="suggestions-label-short">New</span>
                 <span className="dropdown-arrow">{isOpen ? "▲" : "▼"}</span>
             </button>
             {isOpen && (

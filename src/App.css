@@ -124,11 +124,17 @@ main.content {
     box-sizing: border-box;
 }
 
-/* Compact nav items so Map + badges + Suggestions fit a phone screen.
-   Must stay after the .nav-link base rules to win the cascade. */
+/* Compact nav items so Map + Animate + badges + Suggestions fit a phone
+   screen. Must stay after the .nav-link base rules to win the cascade. */
 @media (max-width: 600px) {
     .nav-link {
         padding: 0.5rem 0.6rem;
         font-size: 0.9rem;
+    }
+
+    /* Two page links plus dev badges can exceed one row, wrap gracefully. */
+    .nav-main-links {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
