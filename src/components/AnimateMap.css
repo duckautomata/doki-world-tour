@@ -10,7 +10,16 @@
 
 .animate-trail-dot {
     fill: var(--accent);
-    opacity: 0.55;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 1;
+    opacity: 0.85;
+}
+
+/* Light land is close to the accent in luminance — darker fill + solid white
+   ring keeps the trail readable. */
+[data-theme="light"] .animate-trail-dot {
+    fill: #047857;
+    stroke: #ffffff;
 }
 
 .animate-active-dot {
@@ -22,10 +31,21 @@
 .animate-active-pulse {
     fill: none;
     stroke: #facc15;
-    stroke-width: 2;
+    stroke-width: 2.5;
     transform-box: fill-box;
     transform-origin: center;
     animation: animatePulse 1.2s ease-out infinite;
+}
+
+/* Bright yellow disappears against light land; use dark amber with a dark
+   ring there instead. */
+[data-theme="light"] .animate-active-dot {
+    fill: #d97706;
+    stroke: #78350f;
+}
+
+[data-theme="light"] .animate-active-pulse {
+    stroke: #b45309;
 }
 
 @keyframes animatePulse {

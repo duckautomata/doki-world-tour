@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { geoEqualEarth, geoPath, geoGraticule10 } from "d3-geo";
 import { feature, mesh } from "topojson-client";
 import world from "world-atlas/countries-110m.json";
@@ -30,6 +31,22 @@ const BORDER_PATH = path(mesh(world, world.objects.countries, (a, b) => a !== b)
  * @param {number} props.activeIndex index of the event currently showing
  */
 export default function AnimateMap({ events, activeIndex }) {
+    // The SVG scales down with the viewport, so phone screens get larger dot
+    // radii to stay legible (guarded for jsdom).
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        if (typeof window.matchMedia !== "function") return undefined;
+        const mediaQuery = window.matchMedia("(max-width: 600px)");
+        const update = () => setIsMobile(mediaQuery.matches);
+        update();
+        mediaQuery.addEventListener?.("change", update);
+        return () => mediaQuery.removeEventListener?.("change", update);
+    }, []);
+
+    const trailRadius = isMobile ? 7 : 4.5;
+    const activeRadius = isMobile ? 10 : 7;
+    const pulseRadius = isMobile ? 14 : 11;
+
     const active = events[activeIndex];
     const activePoint = active ? projection([active.longitude, active.latitude]) : null;
 
@@ -48,12 +65,12 @@ export default function AnimateMap({ events, activeIndex }) {
                 <path className="map-borders" d={BORDER_PATH} />
                 {events.slice(0, activeIndex).map((e) => {
                     const [x, y] = projection([e.longitude, e.latitude]);
-                    return <circle key={e.event_id} className="animate-trail-dot" cx={x} cy={y} r={3.5} />;
+                    return <circle key={e.event_id} className="animate-trail-dot" cx={x} cy={y} r={trailRadius} />;
                 })}
                 {activePoint && (
                     <g className="animate-active" transform={`translate(${activePoint[0]},${activePoint[1]})`}>
-                        <circle className="animate-active-pulse" r={9} />
-                        <circle className="animate-active-dot" r={5.5} />
+                        <circle className="animate-active-pulse" r={pulseRadius} />
+                        <circle className="animate-active-dot" r={activeRadius} />
                     </g>
                 )}
             </svg>
