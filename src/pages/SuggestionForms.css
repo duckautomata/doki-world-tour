@@ -442,6 +442,123 @@
     }
 }
 
+/* Media rows: one per link or uploaded file attached to an event. Wider than
+   the image rows above (a link needs a platform, a URL and a description), so
+   the fields wrap onto their own line as soon as space runs out. */
+.suggestion-media-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.suggestion-media-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    background: rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .suggestion-media-row {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.suggestion-media-row.marked-deleted {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.4);
+}
+
+.suggestion-media-row.marked-deleted .suggestion-image-row-thumb,
+.suggestion-media-row.marked-deleted .suggestion-media-row-kind {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+}
+
+.suggestion-media-row.marked-deleted .suggestion-image-row-remove {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #4ade80;
+    font-size: 1.1rem;
+}
+
+.suggestion-media-row.marked-deleted .suggestion-image-row-remove:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.45);
+    border-color: rgba(34, 197, 94, 0.7);
+}
+
+.suggestion-media-row-kind {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.suggestion-media-row-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-media-row-fields .suggestion-image-row-source {
+    flex: 1 1 180px;
+}
+
+@media (max-width: 600px) {
+    .suggestion-media-row {
+        flex-wrap: wrap;
+    }
+
+    /* Below the thumbnail and the remove button, using the full row width. */
+    .suggestion-media-row-fields {
+        order: 3;
+        flex-basis: 100%;
+    }
+
+    .suggestion-media-row-fields .suggestion-image-row-type,
+    .suggestion-media-row-fields .suggestion-image-row-source {
+        flex: 1 1 100%;
+        width: auto;
+    }
+}
+
+.suggestion-media-add-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.suggestion-media-add-link {
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: var(--accent);
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.suggestion-media-add-link:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.suggestion-media-add-link:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 /* Image section: top-of-form drop zone for new/replacement image */
 .suggestion-image-section {
     display: flex;

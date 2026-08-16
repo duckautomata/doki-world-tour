@@ -149,10 +149,10 @@ describe("Home", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("links each event to its edit form", () => {
+    it("links each event to its view page", () => {
         renderHome();
         openList();
-        expect(screen.getAllByRole("link", { name: "Suggest edit" })[0]).toHaveAttribute("href", "/edit/dokomi-2026");
+        expect(screen.getAllByRole("link", { name: "View details" })[0]).toHaveAttribute("href", "/view/dokomi-2026");
     });
 
     it("opens the image modal from a card image, showing its source link", () => {
@@ -174,16 +174,10 @@ describe("Home", () => {
         expect(screen.queryByRole("button", { name: "View image for Dokomi" })).not.toBeInTheDocument();
     });
 
-    it("jumps from the city sheet's View button to the event card in the list", () => {
+    it("links the city sheet's View button to the event's view page", () => {
         const { container } = renderHome();
         // Tap the Düsseldorf marker (first group, list still collapsed).
         fireEvent.click(container.querySelector(".map-marker"));
-        expect(screen.queryByRole("link", { name: "Suggest edit" })).not.toBeInTheDocument(); // list closed
-        fireEvent.click(screen.getByRole("button", { name: "View Dokomi in the list" }));
-
-        const card = document.getElementById("event-dokomi-2026");
-        expect(card).not.toBeNull(); // list opened automatically
-        expect(card.classList.contains("highlighted")).toBe(true);
-        expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+        expect(screen.getByRole("link", { name: "View Dokomi" })).toHaveAttribute("href", "/view/dokomi-2026");
     });
 });

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatEventDate } from "../utils/dataLoader";
+import { formatEventDate, headingMediaItem } from "../utils/dataLoader";
 import ImageModal from "./ImageModal";
 import "./EventCard.css";
 
@@ -15,17 +15,14 @@ import "./EventCard.css";
  * @param {Object} props
  * @param {EventData} props.event
  * @param {() => void} props.onShowOnMap selects this event's city marker
- * @param {boolean} [props.highlighted] flashes the card (used by the city sheet's View jump)
  */
-export default function EventCard({ event, onShowOnMap, highlighted = false }) {
+export default function EventCard({ event, onShowOnMap }) {
     const [modalOpen, setModalOpen] = useState(false);
     const isUpcoming = event.dateValue >= new Date().setHours(0, 0, 0, 0);
+    const heading = useMemo(() => headingMediaItem(event), [event]);
 
     return (
-        <article
-            id={`event-${event.event_id}`}
-            className={`event-card glass-panel${highlighted ? " highlighted" : ""}`}
-        >
+        <article id={`event-${event.event_id}`} className="event-card glass-panel">
             <div className="event-card-media">
                 {event.urlWebp && (
                     <button
@@ -77,11 +74,13 @@ export default function EventCard({ event, onShowOnMap, highlighted = false }) {
                 <button className="event-card-map-btn" onClick={onShowOnMap}>
                     Show on map
                 </button>
-                <Link className="event-card-edit" to={`/edit/${event.event_id}`}>
-                    Suggest edit
+                <Link className="event-card-view" to={`/view/${event.event_id}`}>
+                    View details
                 </Link>
             </div>
-            {modalOpen && <ImageModal event={event} onClose={() => setModalOpen(false)} />}
+            {modalOpen && heading && (
+                <ImageModal items={[heading]} selectedIndex={0} onClose={() => setModalOpen(false)} />
+            )}
         </article>
     );
 }

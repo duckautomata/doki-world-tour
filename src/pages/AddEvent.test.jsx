@@ -166,6 +166,46 @@ describe("AddEvent", () => {
         expect(screen.getByRole("button", { name: "Submit Suggestion" })).toBeDisabled();
     });
 
+    it("sends media links with the event and fills the platform from the URL", async () => {
+        await renderForm();
+        fillEntry(conA);
+        fireEvent.click(screen.getByRole("button", { name: "+ Add a link" }));
+        fireEvent.change(screen.getByLabelText("Description for media"), { target: { value: "Panel VOD" } });
+        fireEvent.change(screen.getByLabelText("Link for Panel VOD"), {
+            target: { value: "https://www.youtube.com/watch?v=abc" },
+        });
+        expect(screen.getByLabelText("Platform for Panel VOD")).toHaveValue("YouTube");
+
+        fireEvent.click(screen.getByRole("button", { name: "Submit Suggestion" }));
+        fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+        await waitFor(() => expect(submitSuggestion).toHaveBeenCalledTimes(1));
+        expect(submitSuggestion.mock.calls[0][0].payload.media).toEqual([
+            { description: "Panel VOD", source: "https://www.youtube.com/watch?v=abc", platform: "YouTube" },
+        ]);
+    });
+
+    it("blocks submission while a media link is missing its URL", async () => {
+        await renderForm();
+        fillEntry(conA);
+        fireEvent.click(screen.getByRole("button", { name: "+ Add a link" }));
+
+        expect(screen.getByText(/Every link needs a URL and a platform/)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Submit Suggestion" })).toBeDisabled();
+
+        fireEvent.change(screen.getByLabelText("Link for media"), {
+            target: { value: "https://www.twitch.tv/videos/1" },
+        });
+        expect(screen.getByRole("button", { name: "Submit Suggestion" })).toBeEnabled();
+    });
+
+    it("drops a media row with its remove button", async () => {
+        await renderForm();
+        fireEvent.click(screen.getByRole("button", { name: "+ Add a link" }));
+        fireEvent.click(screen.getByRole("button", { name: "Remove media" }));
+        expect(screen.queryByLabelText("Link for media")).not.toBeInTheDocument();
+    });
+
     it("loads a queued entry back into the form for editing", async () => {
         await renderForm();
         fillEntry(conB);

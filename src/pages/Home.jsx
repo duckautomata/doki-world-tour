@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAppStore } from "../store/store";
 import { groupByCity, EVENT_TYPES } from "../utils/dataLoader";
@@ -83,23 +83,6 @@ export default function Home({ data }) {
         mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    // The city sheet's View button: open the list (if collapsed), then scroll
-    // to the event's card and flash it. The scroll waits a render so the card
-    // exists when the list was closed.
-    const [viewEventId, setViewEventId] = useState(null);
-    const viewEvent = (eventId) => {
-        setShowList(true);
-        setViewEventId(eventId);
-    };
-
-    useEffect(() => {
-        if (!viewEventId || !showList) return undefined;
-        document.getElementById(`event-${viewEventId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Clear after the flash animation so a repeat View re-triggers it.
-        const timer = setTimeout(() => setViewEventId(null), 4100);
-        return () => clearTimeout(timer);
-    }, [viewEventId, showList]);
-
     return (
         <div className="home-page">
             <section className="map-controls glass-panel">
@@ -180,9 +163,7 @@ export default function Home({ data }) {
 
             <section className="map-section" ref={mapSectionRef}>
                 <WorldMap groups={groups} selectedKey={selectedCityKey} onSelect={setSelectedCityKey} />
-                {selectedGroup && (
-                    <CitySheet group={selectedGroup} onClose={() => setSelectedCityKey(null)} onViewEvent={viewEvent} />
-                )}
+                {selectedGroup && <CitySheet group={selectedGroup} onClose={() => setSelectedCityKey(null)} />}
             </section>
 
             <section className="event-list">
@@ -210,12 +191,7 @@ export default function Home({ data }) {
                     ) : (
                         <div className="event-grid">
                             {filtered.map((e) => (
-                                <EventCard
-                                    key={e.event_id}
-                                    event={e}
-                                    onShowOnMap={() => showOnMap(e)}
-                                    highlighted={e.event_id === viewEventId}
-                                />
+                                <EventCard key={e.event_id} event={e} onShowOnMap={() => showOnMap(e)} />
                             ))}
                         </div>
                     ))}

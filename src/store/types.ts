@@ -2,6 +2,23 @@ import { StateCreator } from "zustand";
 
 // Data Structure Interfaces
 
+// One row of media.csv. A row is either a link (source + platform) or an
+// uploaded file (media_id + media_ext, optionally credited); `index` is its
+// position among the rows belonging to the same event.
+export interface MediaItem {
+    index: number;
+    kind: "link" | "upload";
+    description: string;
+    source: string;
+    platform: string;
+    credit: string;
+    media_id: string;
+    media_ext: string;
+    urlOrig: string | null;
+    urlWebp: string | null;
+    urlThumb: string | null;
+}
+
 export interface EventData {
     event_id: string;
     date: string;
@@ -19,6 +36,7 @@ export interface EventData {
     urlOrig: string | null;
     urlWebp: string | null;
     urlThumb: string | null;
+    media: MediaItem[];
 }
 
 // One map marker: every event sharing a city + country, positioned at the

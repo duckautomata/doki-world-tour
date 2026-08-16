@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AnimateMap from "../components/AnimateMap";
 import ImageModal from "../components/ImageModal";
-import { formatEventDate } from "../utils/dataLoader";
+import { formatEventDate, headingMediaItem } from "../utils/dataLoader";
 import "./Animate.css";
 
 /**
@@ -28,6 +28,7 @@ export default function Animate({ data }) {
 
     const events = data;
     const active = events[index];
+    const activeHeading = useMemo(() => headingMediaItem(active), [active]);
 
     // Advance while playing; linger on the final event, then stop.
     useEffect(() => {
@@ -135,7 +136,9 @@ export default function Animate({ data }) {
                     </div>
                 </aside>
             </div>
-            {modalOpen && <ImageModal event={active} onClose={() => setModalOpen(false)} />}
+            {modalOpen && activeHeading && (
+                <ImageModal items={[activeHeading]} selectedIndex={0} onClose={() => setModalOpen(false)} />
+            )}
         </div>
     );
 }

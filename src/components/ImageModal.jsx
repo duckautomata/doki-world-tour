@@ -5,34 +5,53 @@ import { LOG_ERROR } from "../utils/debug";
 import { isUrl } from "../utils/textUtils";
 
 /**
- * @typedef {import("../store/types").EventData} EventData
+ * @typedef {import("../store/types").MediaItem} MediaItem
  */
 
 /**
- * ImageModal shows an event's heading image full-size, with its source
- * (rendered as a link when it is one), copy, and download actions. Events
- * have a single image, so unlike the sibling sites there is no gallery
- * navigation.
+ * ImageModal shows an uploaded media item full-size, with its credit
+ * (rendered as a link when it is one), copy, and download actions. Several
+ * items can be passed to browse them as a gallery; a single one (an event's
+ * heading image) simply hides the navigation.
  *
  * @param {Object} props
- * @param {EventData} props.event the event whose image is shown
+ * @param {MediaItem[]} props.items the uploaded media to browse
+ * @param {number} props.selectedIndex index of the item on screen
  * @param {function(): void} props.onClose
+ * @param {function(number): void} [props.onNavigate] required when items has more than one entry
  */
-export default function ImageModal({ event, onClose }) {
+export default function ImageModal({ items, selectedIndex, onClose, onNavigate }) {
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedImage, setCopiedImage] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [lastSelectedIndex, setLastSelectedIndex] = useState(selectedIndex);
     const [fileSize, setFileSize] = useState(null);
     const [dimensions, setDimensions] = useState(null);
 
-    // Fetch file size when the modal opens
+    const item = items[selectedIndex];
+    const isVideo = item?.media_ext === ".mp4";
+
+    // Reset the per-item state when the gallery moves to another item.
+    if (selectedIndex !== lastSelectedIndex) {
+        setLastSelectedIndex(selectedIndex);
+        setCopiedLink(false);
+        setCopiedImage(false);
+        setErrorMsg("");
+        setFileSize(null);
+        setDimensions(null);
+    }
+
+    // Fetch file size when the item changes. Keyed on the URL rather than the
+    // item so a caller that rebuilds the item object every render (an event's
+    // heading image, say) does not refetch on every render.
+    const originalUrl = item?.urlOrig;
     useEffect(() => {
-        if (!event?.urlOrig) return undefined;
+        if (!originalUrl) return undefined;
 
         let isMounted = true;
         const fetchSize = async () => {
             try {
-                const response = await fetch(event.urlOrig, { method: "HEAD" });
+                const response = await fetch(originalUrl, { method: "HEAD" });
                 const contentLength = response.headers.get("content-length");
                 if (contentLength && isMounted) {
                     const size = parseInt(contentLength, 10);
@@ -55,13 +74,19 @@ export default function ImageModal({ event, onClose }) {
         return () => {
             isMounted = false;
         };
-    }, [event]);
+    }, [originalUrl]);
 
     const handleKeyDown = useCallback(
         (e) => {
-            if (e.key === "Escape") onClose();
+            if (e.key === "Escape") {
+                onClose();
+            } else if (e.key === "ArrowRight") {
+                if (selectedIndex < items.length - 1) onNavigate?.(selectedIndex + 1);
+            } else if (e.key === "ArrowLeft") {
+                if (selectedIndex > 0) onNavigate?.(selectedIndex - 1);
+            }
         },
-        [onClose],
+        [selectedIndex, items.length, onClose, onNavigate],
     );
 
     useEffect(() => {
@@ -75,7 +100,10 @@ export default function ImageModal({ event, onClose }) {
         };
     }, [handleKeyDown]);
 
-    if (!event?.urlOrig) return null;
+    if (!item?.urlOrig) return null;
+
+    const title = item.description || item.media_id;
+    const credit = item.credit?.trim();
 
     const handleBackgroundClick = (e) => {
         if (
@@ -89,7 +117,7 @@ export default function ImageModal({ event, onClose }) {
 
     const handleCopyLink = async () => {
         try {
-            await navigator.clipboard.writeText(event.urlWebp);
+            await navigator.clipboard.writeText(isVideo ? item.urlOrig : item.urlWebp);
             setCopiedLink(true);
             setTimeout(() => setCopiedLink(false), 2000);
         } catch (err) {
@@ -105,7 +133,7 @@ export default function ImageModal({ event, onClose }) {
                 return;
             }
 
-            const response = await fetch(event.urlOrig);
+            const response = await fetch(item.urlOrig);
             const blob = await response.blob();
 
             let clipboardBlob = blob;
@@ -138,8 +166,8 @@ export default function ImageModal({ event, onClose }) {
                 });
             }
 
-            const item = new ClipboardItem({ [clipboardBlob.type]: clipboardBlob });
-            await navigator.clipboard.write([item]);
+            const clipboardItem = new ClipboardItem({ [clipboardBlob.type]: clipboardBlob });
+            await navigator.clipboard.write([clipboardItem]);
             setCopiedImage(true);
             setTimeout(() => setCopiedImage(false), 2000);
         } catch (err) {
@@ -153,8 +181,8 @@ export default function ImageModal({ event, onClose }) {
 
     const handleDownload = () => {
         const link = document.createElement("a");
-        const fileName = `${event.event_name}${event.image_ext}`;
-        link.href = `${event.urlOrig}?download=true&name=${encodeURIComponent(fileName)}`;
+        const fileName = `${title}${item.media_ext}`;
+        link.href = `${item.urlOrig}?download=true&name=${encodeURIComponent(fileName)}`;
         // Suggest a filename
         link.download = fileName;
         document.body.appendChild(link);
@@ -166,7 +194,9 @@ export default function ImageModal({ event, onClose }) {
         setDimensions(`${e.target.naturalWidth} × ${e.target.naturalHeight}`);
     };
 
-    const source = event.image_source?.trim();
+    const handleVideoLoad = (e) => {
+        setDimensions(`${e.target.videoWidth} × ${e.target.videoHeight}`);
+    };
 
     // Portal to <body>: the card that opens this modal has a backdrop-filter
     // (and a hover transform), either of which would become the containing
@@ -180,22 +210,53 @@ export default function ImageModal({ event, onClose }) {
                 </button>
 
                 <div className="modal-image-container">
-                    <img
-                        src={event.urlWebp}
-                        alt={event.event_name}
-                        className="modal-image checkerboard-bg"
-                        onLoad={handleImageLoad}
-                    />
+                    {isVideo ? (
+                        <video
+                            src={item.urlOrig}
+                            className="modal-image checkerboard-bg"
+                            controls
+                            autoPlay
+                            loop
+                            onLoadedMetadata={handleVideoLoad}
+                        />
+                    ) : (
+                        <img
+                            src={item.urlWebp}
+                            alt={title}
+                            className="modal-image checkerboard-bg"
+                            onLoad={handleImageLoad}
+                        />
+                    )}
+
+                    {selectedIndex > 0 && (
+                        <button
+                            className="modal-nav prev"
+                            onClick={() => onNavigate?.(selectedIndex - 1)}
+                            aria-label="Previous media"
+                        >
+                            ‹
+                        </button>
+                    )}
+
+                    {selectedIndex < items.length - 1 && (
+                        <button
+                            className="modal-nav next"
+                            onClick={() => onNavigate?.(selectedIndex + 1)}
+                            aria-label="Next media"
+                        >
+                            ›
+                        </button>
+                    )}
                 </div>
 
                 <div className="modal-info-bar">
                     <div className="modal-details">
-                        <h3 className="modal-title">{event.event_name}</h3>
+                        <h3 className="modal-title">{title}</h3>
                         <div className="modal-meta">
-                            {source &&
-                                (isUrl(source) ? (
+                            {credit &&
+                                (isUrl(credit) ? (
                                     <a
-                                        href={source.startsWith("www.") ? `https://${source}` : source}
+                                        href={credit.startsWith("www.") ? `https://${credit}` : credit}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="modal-tag source-tag"
@@ -205,14 +266,14 @@ export default function ImageModal({ event, onClose }) {
                                         Source
                                     </a>
                                 ) : (
-                                    <span className="modal-tag source-tag" title={source}>
-                                        Source: {source}
+                                    <span className="modal-tag source-tag" title={credit}>
+                                        Credit: {credit}
                                     </span>
                                 ))}
-                            <span className="modal-tag id-tag">ID: {event.image_id}</span>
+                            <span className="modal-tag id-tag">ID: {item.media_id}</span>
                             {dimensions && <span className="modal-tag dim-tag">{dimensions}</span>}
                             {fileSize && <span className="modal-tag size-tag">{fileSize}</span>}
-                            <span className="modal-tag ext-tag">Original: {event.image_ext.toUpperCase()}</span>
+                            <span className="modal-tag ext-tag">Original: {item.media_ext.toUpperCase()}</span>
                         </div>
                     </div>
 
@@ -221,7 +282,7 @@ export default function ImageModal({ event, onClose }) {
                             <span className="icon">🔗</span>
                             {copiedLink ? "Copied Link!" : "Copy Link"}
                         </button>
-                        {event.image_ext !== ".gif" && (
+                        {item.media_ext !== ".gif" && !isVideo && (
                             <button
                                 className="modal-action-btn"
                                 onClick={handleCopyImage}
@@ -238,6 +299,11 @@ export default function ImageModal({ event, onClose }) {
                     </div>
                 </div>
             </div>
+            {items.length > 1 && (
+                <div className="modal-counter">
+                    {selectedIndex + 1} / {items.length}
+                </div>
+            )}
         </div>,
         document.body,
     );

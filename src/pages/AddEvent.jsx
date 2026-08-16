@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TurnstileWidget from "../components/TurnstileWidget";
 import ImageDropZone from "../components/ImageDropZone";
+import MediaList from "../components/MediaList";
 import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import ConfirmSubmitModal from "../components/ConfirmSubmitModal";
 import { fetchPublicConfig, uploadImage, submitSuggestion, validateImageFile } from "../utils/contentApi";
 import { saveSuggestionId } from "../utils/suggestionIds";
 import { isoToCsvDate, EVENT_TYPES } from "../utils/dataLoader";
+import { emptyLinkDraft, isMediaComplete, mediaToPayload, uploadToDraft } from "../utils/mediaDrafts";
 import { LOG_ERROR } from "../utils/debug";
 import "./SuggestionForms.css";
 
@@ -29,10 +31,16 @@ export default function AddEvent() {
 
     // Events have a single heading image; picking a new file replaces any
     // previously uploaded one.
-    const [pickedFile, setPickedFile] = useState(null);
     const [localPreviewUrl, setLocalPreviewUrl] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
     const [imageSource, setImageSource] = useState("");
+
+    // Links and uploaded files shown on the event's view page.
+    const [media, setMedia] = useState([]);
+
+    // One queue for every file the form uploads (the heading image and media
+    // alike) so only one Turnstile token is ever in flight.
+    const [uploadQueue, setUploadQueue] = useState([]); // [{ target: "heading" | "media", file }]
 
     // `null` = waiting on the widget; `""` = Turnstile disabled by the server
     // (submit-ready immediately); any other string = an actual issued token.
@@ -41,6 +49,7 @@ export default function AddEvent() {
     const [turnstileToken, setTurnstileToken] = useState(null);
     const turnstileResetRef = useRef(null);
     const isUploadingRef = useRef(false);
+    const jobUidRef = useRef(0);
 
     const [busy, setBusy] = useState(null);
     const [error, setError] = useState(null);
@@ -70,45 +79,54 @@ export default function AddEvent() {
         }
     }, [cfg, turnstileEnabled]);
 
+    const pendingHeadingFile = uploadQueue.find((job) => job.target === "heading")?.file ?? null;
     useEffect(() => {
-        if (!pickedFile) {
+        if (!pendingHeadingFile) {
             setLocalPreviewUrl(null);
             return undefined;
         }
-        const url = URL.createObjectURL(pickedFile);
+        const url = URL.createObjectURL(pendingHeadingFile);
         setLocalPreviewUrl(url);
         return () => URL.revokeObjectURL(url);
-    }, [pickedFile]);
+    }, [pendingHeadingFile]);
 
     useEffect(() => {
-        if (!pickedFile || turnstileToken === null || busy) return;
+        if (uploadQueue.length === 0 || turnstileToken === null || busy) return;
         if (isUploadingRef.current) return;
         isUploadingRef.current = true;
 
         const token = turnstileToken;
-        const file = pickedFile;
+        const job = uploadQueue[0];
         setBusy("uploading");
         setError(null);
 
         (async () => {
             try {
-                const result = await uploadImage({ token, file });
-                setUploadedImage({ ...result, file_name: file.name });
+                const result = await uploadImage({ token, file: job.file });
+                if (job.target === "heading") {
+                    setUploadedImage({ ...result, file_name: job.file.name });
+                } else {
+                    setMedia((prev) => [...prev, uploadToDraft(result, job.file)]);
+                }
             } catch (err) {
                 LOG_ERROR("Upload failed", err);
                 setError(`Upload failed: ${err.message}`);
             } finally {
-                setPickedFile(null);
+                setUploadQueue((prev) => prev.filter((queued) => queued.uid !== job.uid)); // done, failed or not
                 isUploadingRef.current = false;
                 setBusy(null);
                 turnstileResetRef.current?.();
             }
         })();
-    }, [pickedFile, turnstileToken, busy]);
+    }, [uploadQueue, turnstileToken, busy]);
 
     const toggleType = (type) => {
         setTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
     };
+
+    // A link row with no URL or platform yet would be dropped silently on
+    // submit, so it blocks the entry the same way a half-filled form does.
+    const mediaIncomplete = media.some((item) => !isMediaComplete(item));
 
     // The entry currently in the form fields. "Valid" means submittable on
     // its own; "empty" means untouched (notes are batch-level, so excluded).
@@ -118,7 +136,8 @@ export default function AddEvent() {
         types.length > 0 &&
         date.length > 0 &&
         city.trim().length > 0 &&
-        country.trim().length > 0;
+        country.trim().length > 0 &&
+        !mediaIncomplete;
     const currentEmpty =
         name.trim().length === 0 &&
         types.length === 0 &&
@@ -126,9 +145,10 @@ export default function AddEvent() {
         place.trim().length === 0 &&
         city.trim().length === 0 &&
         country.trim().length === 0 &&
-        pickedFile === null &&
+        uploadQueue.length === 0 &&
         uploadedImage === null &&
-        imageSource.trim().length === 0;
+        imageSource.trim().length === 0 &&
+        media.length === 0;
 
     // A valid in-progress entry is submitted along with the queue; a
     // half-filled one blocks submission so it can't be lost silently.
@@ -148,6 +168,7 @@ export default function AddEvent() {
         country: country.trim(),
         uploadedImage,
         imageSource: imageSource.trim(),
+        media,
     });
 
     const clearEntryFields = () => {
@@ -157,9 +178,10 @@ export default function AddEvent() {
         setPlace("");
         setCity("");
         setCountry("");
-        setPickedFile(null);
+        setUploadQueue([]);
         setUploadedImage(null);
         setImageSource("");
+        setMedia([]);
         setError(null);
     };
 
@@ -190,11 +212,14 @@ export default function AddEvent() {
         setCountry(entry.country);
         setUploadedImage(entry.uploadedImage);
         setImageSource(entry.imageSource);
+        setMedia(entry.media);
         setBatch((prev) => prev.filter((_, i) => i !== index));
         setError(null);
     };
 
-    const handleFileSelected = (file) => {
+    // Queues a file for upload; `target` decides whether the result becomes
+    // the heading image or another media row.
+    const queueUpload = (file, target) => {
         setError(null);
         setSuccess(null);
         const validationError = validateImageFile(file, cfg);
@@ -202,16 +227,32 @@ export default function AddEvent() {
             setError(validationError);
             return;
         }
-        setUploadedImage(null);
-        setPickedFile(file);
+        const job = { uid: `job-${(jobUidRef.current += 1)}`, target, file };
+        // A second heading pick replaces one still waiting in the queue;
+        // media files all queue up behind each other.
+        if (target === "heading") {
+            setUploadedImage(null);
+            setUploadQueue((prev) => [...prev.filter((queued) => queued.target !== "heading"), job]);
+            return;
+        }
+        setUploadQueue((prev) => [...prev, job]);
     };
 
     const handleClearImage = () => {
         if (busy) return;
-        setPickedFile(null);
+        setUploadQueue((prev) => prev.filter((job) => job.target !== "heading"));
         setUploadedImage(null);
         setImageSource("");
         setError(null);
+    };
+
+    const handleMediaChange = (uid, patch) => {
+        setMedia((prev) => prev.map((item) => (item.uid === uid ? { ...item, ...patch } : item)));
+    };
+
+    const handleMediaRemove = (uid) => {
+        if (busy) return;
+        setMedia((prev) => prev.filter((item) => item.uid !== uid));
     };
 
     // Validate and open the confirmation modal; nothing is sent until the
@@ -234,6 +275,7 @@ export default function AddEvent() {
         image: entry.uploadedImage
             ? { image_id: entry.uploadedImage.id, file_name: entry.uploadedImage.file_name }
             : null,
+        media: entry.media.map(mediaToPayload),
     });
 
     const performSubmit = async () => {
@@ -254,7 +296,10 @@ export default function AddEvent() {
                 token: turnstileToken,
                 kind: "new",
                 payload,
-                imageIds: entries.filter((entry) => entry.uploadedImage).map((entry) => entry.uploadedImage.id),
+                imageIds: entries.flatMap((entry) => [
+                    ...(entry.uploadedImage ? [entry.uploadedImage.id] : []),
+                    ...entry.media.filter((item) => item.kind === "upload").map((item) => item.media_id),
+                ]),
                 summary:
                     entries.length === 1
                         ? `Add the event ${names[0]}`
@@ -323,12 +368,16 @@ export default function AddEvent() {
     const maxMb = (cfg.max_image_bytes / (1024 * 1024)).toFixed(0);
     const acceptList = (cfg.supported_formats ?? []).map((f) => `.${f}`).join(",");
 
-    let dropzoneOverlay = null;
-    if (busy === "uploading") {
-        dropzoneOverlay = "Uploading…";
-    } else if (pickedFile && turnstileToken === null) {
-        dropzoneOverlay = "Waiting for verification…";
-    }
+    // Each dropzone reports on its own files: what is uploading right now,
+    // what is still queued behind it, and whether Turnstile is holding
+    // everything up.
+    const overlayFor = (target) => {
+        const pending = uploadQueue.filter((job) => job.target === target).length;
+        if (pending === 0) return null;
+        if (turnstileToken === null) return "Waiting for verification…";
+        if (uploadQueue[0]?.target !== target) return `Queued… (${pending})`;
+        return pending > 1 ? `Uploading… (${pending} left)` : "Uploading…";
+    };
 
     return (
         <div className="suggestion-page">
@@ -487,16 +536,16 @@ export default function AddEvent() {
                         </span>
                         <ImageDropZone
                             accept={acceptList}
-                            onSelect={handleFileSelected}
+                            onSelect={(file) => queueUpload(file, "heading")}
                             previewSrc={localPreviewUrl ?? uploadedImage?.urls?.preview}
-                            overlay={dropzoneOverlay}
+                            overlay={overlayFor("heading")}
                             onClear={handleClearImage}
-                            clearable={(pickedFile !== null || uploadedImage !== null) && !busy}
+                            clearable={(pendingHeadingFile !== null || uploadedImage !== null) && !busy}
                             placeholder="Drop an image, or click to browse"
                             hint="Shown as the event's heading image"
                             disabled={busy === "submitting"}
                         />
-                        {(pickedFile !== null || uploadedImage !== null) && (
+                        {(pendingHeadingFile !== null || uploadedImage !== null) && (
                             <div className="suggestion-image-source-field">
                                 <label className="suggestion-field-label" htmlFor="add-image-source">
                                     Image Source{" "}
@@ -511,6 +560,54 @@ export default function AddEvent() {
                                     placeholder="https://x.com/… or @artist"
                                     maxLength={500}
                                 />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="suggestion-field">
+                        <span className="suggestion-field-label">
+                            Media{" "}
+                            <span className="suggestion-field-hint">
+                                (optional · VODs, clips, photos and videos shown on the event page)
+                            </span>
+                        </span>
+                        <MediaList
+                            items={media}
+                            onChange={handleMediaChange}
+                            onRemove={handleMediaRemove}
+                            disabled={!!busy}
+                        />
+                        <div className="suggestion-image-add-block">
+                            <div className="suggestion-media-add-actions">
+                                <button
+                                    type="button"
+                                    className="suggestion-media-add-link"
+                                    onClick={() => setMedia((prev) => [...prev, emptyLinkDraft()])}
+                                    disabled={!!busy}
+                                >
+                                    + Add a link
+                                </button>
+                                <span className="suggestion-field-hint">
+                                    or upload files below (up to {maxMb} MB · {(cfg.supported_formats ?? []).join(", ")}
+                                    )
+                                </span>
+                            </div>
+                            <div className="suggestion-image-add-dropzone">
+                                <ImageDropZone
+                                    accept={acceptList}
+                                    multiple
+                                    onSelect={(file) => queueUpload(file, "media")}
+                                    previewSrc={null}
+                                    overlay={overlayFor("media")}
+                                    placeholder="Drop photos or videos, or click to browse"
+                                    hint="Set the description & credit on each row after upload"
+                                    disabled={busy === "submitting"}
+                                />
+                            </div>
+                        </div>
+                        {mediaIncomplete && (
+                            <div className="suggestion-status info">
+                                Every link needs a URL and a platform before this event can be submitted.
                             </div>
                         )}
                     </div>
@@ -564,6 +661,7 @@ export default function AddEvent() {
                                             <span className="suggestion-batch-row-meta">
                                                 {entry.types.join(", ")} · {entry.dateIso} · {entry.city},{" "}
                                                 {entry.country}
+                                                {entry.media.length > 0 && ` · ${entry.media.length} media`}
                                             </span>
                                         </div>
                                         <button

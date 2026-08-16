@@ -4,6 +4,7 @@ import { cdn } from "../config";
 
 /**
  * @typedef {import("../store/types").EventData} EventData
+ * @typedef {import("../store/types").MediaItem} MediaItem
  * @typedef {import("../store/types").CityGroup} CityGroup
  */
 
@@ -19,6 +20,31 @@ export const EVENT_TYPES = [
     "Sponsor Appearance",
     "Pop-up Café",
 ];
+
+// The canonical platforms a linked piece of media can come from, in display
+// order. media.csv's platform column holds one of these (uploaded media has
+// no platform).
+export const PLATFORMS = ["YouTube", "Twitch", "Twitter", "Facebook"];
+
+const PLATFORM_PATTERNS = [
+    ["YouTube", /youtube\.com|youtu\.be/],
+    ["Twitch", /twitch\.tv/],
+    ["Twitter", /twitter\.com|(?:^|\/\/|\.)x\.com/],
+    ["Facebook", /facebook\.com|fb\.watch|fb\.com/],
+];
+
+/**
+ * Guesses which platform a media link belongs to from its URL, so the
+ * suggestion forms can prefill the platform picker.
+ *
+ * @param {string} [url]
+ * @returns {string} a PLATFORMS entry, or "" when nothing matches
+ */
+export const detectPlatform = (url) => {
+    const text = (url ?? "").trim().toLowerCase();
+    if (!text) return "";
+    return PLATFORM_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] ?? "";
+};
 
 const fetchAndParseCSV = async (url) => {
     const response = await fetch(url);
@@ -122,16 +148,112 @@ const parseEventTypes = (text) =>
         .map((t) => t.trim())
         .filter(Boolean);
 
+// Uploaded media renders as a gallery, links as a list, so uploads sort
+// first. Within a kind the order is platform, then description, so the same
+// CSV always produces the same page.
+const MEDIA_KIND_ORDER = { upload: 0, link: 1 };
+
+const compareMedia = (a, b) =>
+    MEDIA_KIND_ORDER[a.kind] - MEDIA_KIND_ORDER[b.kind] ||
+    a.platform.localeCompare(b.platform) ||
+    a.description.localeCompare(b.description) ||
+    a.index - b.index;
+
 /**
- * Loads and parses the event list from the CDN CSV. Rows without a parseable
- * date or coordinates are dropped (they cannot be placed on the map or the
- * timeline). Result is sorted by date ascending.
+ * Turns one media.csv row into a media item. A row is an upload when it has a
+ * media_id (source/platform are then blank) and a link otherwise.
+ *
+ * @param {Object} row
+ * @param {number} index position among the rows of the same event, which is
+ *     how the suggestion forms point admins back at a specific row
+ * @returns {MediaItem}
+ */
+const parseMediaRow = (row, index) => {
+    const media_id = (row.media_id ?? "").trim();
+    const media_ext = (row.media_ext ?? "").trim();
+    const isUpload = Boolean(media_id);
+    return {
+        index,
+        kind: isUpload ? "upload" : "link",
+        description: (row.description ?? "").trim(),
+        source: (row.source ?? "").trim(),
+        platform: (row.platform ?? "").trim(),
+        credit: (row.credit ?? "").trim(),
+        media_id,
+        media_ext,
+        urlOrig: isUpload ? `${cdn}/${media_id}${media_ext}` : null,
+        urlWebp: isUpload ? `${cdn}/${media_id}_p.webp` : null,
+        urlThumb: isUpload ? `${cdn}/${media_id}_t.webp` : null,
+    };
+};
+
+/**
+ * Loads media.csv and groups it by event_id. Media is supplementary, so a
+ * missing or broken file leaves the events themselves intact.
+ *
+ * @returns {Promise<Map<string, MediaItem[]>>}
+ */
+const loadMediaByEvent = async () => {
+    const byEvent = new Map();
+    let rows;
+    try {
+        rows = await fetchAndParseCSV(`${cdn}/media.csv`);
+    } catch (error) {
+        LOG_ERROR("Error loading media data:", error);
+        return byEvent;
+    }
+
+    rows.forEach((row) => {
+        const event_id = (row.event_id ?? "").trim();
+        // A row with neither a link nor an upload has nothing to show.
+        if (!event_id || (!(row.source ?? "").trim() && !(row.media_id ?? "").trim())) {
+            LOG_WARN("Skipping malformed media row:", row);
+            return;
+        }
+        const list = byEvent.get(event_id) ?? [];
+        list.push(parseMediaRow(row, list.length));
+        byEvent.set(event_id, list);
+    });
+
+    byEvent.forEach((list) => list.sort(compareMedia));
+    return byEvent;
+};
+
+/**
+ * Builds a media item for an event's heading image so it can share the media
+ * modal with the event's gallery. Returns null when the event has no image.
+ *
+ * @param {EventData} event
+ * @returns {MediaItem | null}
+ */
+export const headingMediaItem = (event) => {
+    if (!event?.urlOrig) return null;
+    return {
+        index: -1,
+        kind: "upload",
+        description: event.event_name,
+        source: "",
+        platform: "",
+        credit: event.image_source ?? "",
+        media_id: event.image_id,
+        media_ext: event.image_ext,
+        urlOrig: event.urlOrig,
+        urlWebp: event.urlWebp,
+        urlThumb: event.urlThumb,
+    };
+};
+
+/**
+ * Loads and parses the event list from the CDN CSV, attaching each event's
+ * media from media.csv. Rows without a parseable date or coordinates are
+ * dropped (they cannot be placed on the map or the timeline). Result is
+ * sorted by date ascending.
  *
  * @returns {Promise<EventData[]>}
  */
 export const loadEventData = async () => {
     try {
-        const rows = await fetchAndParseCSV(`${cdn}/events.csv`);
+        const [rows, mediaByEvent] = await Promise.all([fetchAndParseCSV(`${cdn}/events.csv`), loadMediaByEvent()]);
 
         const seenIds = new Set();
         const parsed = [];
@@ -145,13 +267,14 @@ export const loadEventData = async () => {
                 return;
             }
 
-            // The CSV has no id column, so derive a stable one from the name
-            // and date. It doubles as the edit-suggestion target_id, so admins
-            // can match it back to a row. Skip the year suffix when the name
-            // already ends with it ("Anime Expo 2026" → "anime-expo-2026").
+            // The CSV's event_id links the row to its media and doubles as the
+            // suggestion target_id. Older exports have no such column, so fall
+            // back to a slug derived from the name and date, skipping the year
+            // suffix when the name already ends with it ("Anime Expo 2026" →
+            // "anime-expo-2026").
             const slug = slugify(event_name);
             const year = date.getFullYear();
-            const base = slug.endsWith(`-${year}`) ? slug : `${slug}-${year}`;
+            const base = (row.event_id ?? "").trim() || (slug.endsWith(`-${year}`) ? slug : `${slug}-${year}`);
             let event_id = base;
             let n = 2;
             while (seenIds.has(event_id)) event_id = `${base}-${n++}`;
@@ -170,6 +293,7 @@ export const loadEventData = async () => {
                 dateValue: date.getTime(),
                 latitude,
                 longitude,
+                media: mediaByEvent.get(event_id) ?? [],
                 urlOrig: hasImage ? `${cdn}/${row.image_id}${row.image_ext}` : null,
                 urlWebp: hasImage ? `${cdn}/${row.image_id}_p.webp` : null,
                 urlThumb: hasImage ? `${cdn}/${row.image_id}_t.webp` : null,

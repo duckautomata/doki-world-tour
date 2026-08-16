@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { formatEventDate } from "../utils/dataLoader";
 import "./CitySheet.css";
 
@@ -13,9 +14,8 @@ import "./CitySheet.css";
  * @param {Object} props
  * @param {CityGroup} props.group the selected city group
  * @param {() => void} props.onClose
- * @param {(eventId: string) => void} props.onViewEvent jumps to the event's card in the list
  */
-export default function CitySheet({ group, onClose, onViewEvent }) {
+export default function CitySheet({ group, onClose }) {
     const count = group.events.length;
 
     return (
@@ -57,13 +57,13 @@ export default function CitySheet({ group, onClose, onViewEvent }) {
                             )}
                             {event.place && <span className="city-sheet-item-venue">{event.place}</span>}
                         </div>
-                        <button
+                        <Link
                             className="city-sheet-item-view"
-                            onClick={() => onViewEvent(event.event_id)}
-                            aria-label={`View ${event.event_name} in the list`}
+                            to={`/view/${event.event_id}`}
+                            aria-label={`View ${event.event_name}`}
                         >
                             View
-                        </button>
+                        </Link>
                     </li>
                 ))}
             </ul>

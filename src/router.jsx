@@ -3,6 +3,7 @@ import { createBrowserRouter, useOutletContext } from "react-router-dom";
 import App from "./App";
 import Home from "./pages/Home";
 import Animate from "./pages/Animate";
+import View from "./pages/View";
 import AddEvent from "./pages/AddEvent";
 import EditEvent from "./pages/EditEvent";
 import Suggestion from "./pages/Suggestion";
@@ -17,6 +18,11 @@ const HomeRoute = () => {
 const AnimateRoute = () => {
     const { data } = useOutletContext();
     return <Animate data={data} />;
+};
+
+const ViewRoute = () => {
+    const { data } = useOutletContext();
+    return <View data={data} />;
 };
 
 const EditEventRoute = () => {
@@ -35,6 +41,7 @@ export const router = createBrowserRouter(
             children: [
                 { index: true, element: <HomeRoute />, errorElement },
                 { path: "animate", element: <AnimateRoute />, errorElement },
+                { path: "view/:event_id", element: <ViewRoute />, errorElement },
                 { path: "add", element: <AddEvent />, errorElement },
                 { path: "edit/:event_id", element: <EditEventRoute />, errorElement },
                 { path: "suggestion", element: <Suggestion />, errorElement },

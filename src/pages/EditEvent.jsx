@@ -2,11 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import TurnstileWidget from "../components/TurnstileWidget";
 import ImageDropZone from "../components/ImageDropZone";
+import MediaList from "../components/MediaList";
 import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import ConfirmSubmitModal from "../components/ConfirmSubmitModal";
 import { fetchPublicConfig, uploadImage, submitSuggestion, validateImageFile } from "../utils/contentApi";
 import { saveSuggestionId } from "../utils/suggestionIds";
 import { isoToCsvDate, msToIsoDate, isValidCoordinate, parseEventDate, EVENT_TYPES } from "../utils/dataLoader";
+import {
+    deletedMediaPayload,
+    editedMediaPayload,
+    emptyLinkDraft,
+    existingToDraft,
+    isMediaComplete,
+    isMediaEdited,
+    mediaToPayload,
+    uploadToDraft,
+} from "../utils/mediaDrafts";
 import { LOG_ERROR } from "../utils/debug";
 import notFoundImage from "../assets/404.png";
 import "./SuggestionForms.css";
@@ -58,11 +69,19 @@ export default function EditEvent({ data }) {
 
     // Events have a single heading image. A newly picked file replaces
     // any previous upload; removeImage suggests dropping the current one.
-    const [pickedFile, setPickedFile] = useState(null);
     const [localPreviewUrl, setLocalPreviewUrl] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
     const [removeImage, setRemoveImage] = useState(false);
     const [imageSource, setImageSource] = useState(event?.image_source ?? "");
+
+    // Per-existing-media local edits. Each row carries the user's proposed
+    // values plus a "deleted" flag they toggle to suggest removing it.
+    const [existingMedia, setExistingMedia] = useState(() => (event?.media ?? []).map(existingToDraft));
+    const [newMedia, setNewMedia] = useState([]);
+
+    // One queue for every file the form uploads (the heading image and media
+    // alike) so only one Turnstile token is ever in flight.
+    const [uploadQueue, setUploadQueue] = useState([]); // [{ uid, target: "heading" | "media", file }]
 
     // `null` = waiting on the widget; `""` = Turnstile disabled by the server
     // (submit-ready immediately); any other string = an actual issued token.
@@ -71,6 +90,7 @@ export default function EditEvent({ data }) {
     const [turnstileToken, setTurnstileToken] = useState(null);
     const turnstileResetRef = useRef(null);
     const isUploadingRef = useRef(false);
+    const jobUidRef = useRef(0);
 
     const [busy, setBusy] = useState(null);
     const [error, setError] = useState(null);
@@ -100,42 +120,47 @@ export default function EditEvent({ data }) {
         }
     }, [cfg, turnstileEnabled]);
 
+    const pendingHeadingFile = uploadQueue.find((job) => job.target === "heading")?.file ?? null;
     useEffect(() => {
-        if (!pickedFile) {
+        if (!pendingHeadingFile) {
             setLocalPreviewUrl(null);
             return undefined;
         }
-        const url = URL.createObjectURL(pickedFile);
+        const url = URL.createObjectURL(pendingHeadingFile);
         setLocalPreviewUrl(url);
         return () => URL.revokeObjectURL(url);
-    }, [pickedFile]);
+    }, [pendingHeadingFile]);
 
     useEffect(() => {
-        if (!pickedFile || turnstileToken === null || busy) return;
+        if (uploadQueue.length === 0 || turnstileToken === null || busy) return;
         if (isUploadingRef.current) return;
         isUploadingRef.current = true;
 
         const token = turnstileToken;
-        const file = pickedFile;
+        const job = uploadQueue[0];
         setBusy("uploading");
         setError(null);
 
         (async () => {
             try {
-                const result = await uploadImage({ token, file });
-                setUploadedImage({ ...result, file_name: file.name });
-                setRemoveImage(false);
+                const result = await uploadImage({ token, file: job.file });
+                if (job.target === "heading") {
+                    setUploadedImage({ ...result, file_name: job.file.name });
+                    setRemoveImage(false);
+                } else {
+                    setNewMedia((prev) => [...prev, uploadToDraft(result, job.file)]);
+                }
             } catch (err) {
                 LOG_ERROR("Upload failed", err);
                 setError(`Upload failed: ${err.message}`);
             } finally {
-                setPickedFile(null);
+                setUploadQueue((prev) => prev.filter((queued) => queued.uid !== job.uid)); // done, failed or not
                 isUploadingRef.current = false;
                 setBusy(null);
                 turnstileResetRef.current?.();
             }
         })();
-    }, [pickedFile, turnstileToken, busy]);
+    }, [uploadQueue, turnstileToken, busy]);
 
     const toggleType = (type) => {
         setTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
@@ -162,6 +187,29 @@ export default function EditEvent({ data }) {
         return changes;
     }, [event, name, types, date, place, city, country, latitude, longitude, imageSource]);
 
+    // Diff the media rows against the event's current media: the rows whose
+    // details changed, and the ones marked for removal.
+    const mediaChanges = useMemo(() => {
+        const edits = [];
+        const deletes = [];
+        (event?.media ?? []).forEach((original) => {
+            const draft = existingMedia.find((item) => item.index === original.index);
+            if (!draft) return;
+            if (draft.deleted) {
+                deletes.push(deletedMediaPayload(draft));
+            } else if (isMediaEdited(draft, original)) {
+                edits.push(editedMediaPayload(draft));
+            }
+        });
+        return { edits, deletes };
+    }, [event, existingMedia]);
+
+    // A link row without a URL or platform would be dropped silently on
+    // submit, so it blocks submission instead.
+    const mediaIncomplete =
+        newMedia.some((item) => !isMediaComplete(item)) ||
+        existingMedia.some((item) => !item.deleted && !isMediaComplete(item));
+
     if (!event) {
         return (
             <div className="suggestion-page">
@@ -180,9 +228,11 @@ export default function EditEvent({ data }) {
     }
 
     const imageAction = uploadedImage ? "replace" : removeImage ? "remove" : "keep";
-    const editHasChanges = Object.keys(editChanges).length > 0 || imageAction !== "keep";
+    const hasMediaChanges = newMedia.length > 0 || mediaChanges.edits.length > 0 || mediaChanges.deletes.length > 0;
+    const editHasChanges = Object.keys(editChanges).length > 0 || imageAction !== "keep" || hasMediaChanges;
     const canSubmitEdit =
         editHasChanges &&
+        !mediaIncomplete &&
         name.trim().length > 0 &&
         types.length > 0 &&
         date.length > 0 &&
@@ -196,9 +246,13 @@ export default function EditEvent({ data }) {
 
     const isDirty =
         !success &&
-        (mode === "edit" ? editHasChanges || pickedFile !== null || notes.trim().length > 0 : reason.trim().length > 0);
+        (mode === "edit"
+            ? editHasChanges || uploadQueue.length > 0 || notes.trim().length > 0
+            : reason.trim().length > 0);
 
-    const handleFileSelected = (file) => {
+    // Queues a file for upload; `target` decides whether the result becomes
+    // the heading image or another media row.
+    const queueUpload = (file, target) => {
         setError(null);
         setSuccess(null);
         const validationError = validateImageFile(file, cfg);
@@ -206,15 +260,40 @@ export default function EditEvent({ data }) {
             setError(validationError);
             return;
         }
-        setUploadedImage(null);
-        setPickedFile(file);
+        const job = { uid: `job-${(jobUidRef.current += 1)}`, target, file };
+        // A second heading pick replaces one still waiting in the queue;
+        // media files all queue up behind each other.
+        if (target === "heading") {
+            setUploadedImage(null);
+            setUploadQueue((prev) => [...prev.filter((queued) => queued.target !== "heading"), job]);
+            return;
+        }
+        setUploadQueue((prev) => [...prev, job]);
     };
 
     const handleClearImage = () => {
         if (busy) return;
-        setPickedFile(null);
+        setUploadQueue((prev) => prev.filter((job) => job.target !== "heading"));
         setUploadedImage(null);
         setError(null);
+    };
+
+    const handleExistingMediaChange = (uid, patch) => {
+        setExistingMedia((prev) => prev.map((item) => (item.uid === uid ? { ...item, ...patch } : item)));
+    };
+
+    const handleToggleExistingMediaDelete = (uid) => {
+        if (busy) return;
+        setExistingMedia((prev) => prev.map((item) => (item.uid === uid ? { ...item, deleted: !item.deleted } : item)));
+    };
+
+    const handleNewMediaChange = (uid, patch) => {
+        setNewMedia((prev) => prev.map((item) => (item.uid === uid ? { ...item, ...patch } : item)));
+    };
+
+    const handleNewMediaRemove = (uid) => {
+        if (busy) return;
+        setNewMedia((prev) => prev.filter((item) => item.uid !== uid));
     };
 
     // Validate the active mode and open the confirmation modal; nothing is
@@ -243,14 +322,29 @@ export default function EditEvent({ data }) {
                 if (uploadedImage) {
                     payload.new_image = { image_id: uploadedImage.id, file_name: uploadedImage.file_name };
                 }
+                if (newMedia.length > 0) {
+                    payload.new_media = newMedia.map(mediaToPayload);
+                }
+                if (mediaChanges.edits.length > 0) {
+                    payload.edited_media = mediaChanges.edits;
+                }
+                if (mediaChanges.deletes.length > 0) {
+                    payload.deleted_media = mediaChanges.deletes;
+                }
                 const changedFields = Object.keys(editChanges).map((field) => FIELD_LABELS[field] ?? field);
                 if (imageAction === "replace") changedFields.push("heading image");
                 if (imageAction === "remove") changedFields.push("image removal");
+                if (payload.new_media) changedFields.push("new media");
+                if (payload.edited_media) changedFields.push("media details");
+                if (payload.deleted_media) changedFields.push("media removals");
                 const result = await submitSuggestion({
                     token: turnstileToken,
                     kind: "edit",
                     payload,
-                    imageIds: uploadedImage ? [uploadedImage.id] : [],
+                    imageIds: [
+                        ...(uploadedImage ? [uploadedImage.id] : []),
+                        ...newMedia.filter((item) => item.kind === "upload").map((item) => item.media_id),
+                    ],
                     summary: changedFields.length
                         ? `Update the ${changedFields.join(", ")} on '${event.event_name}'`
                         : `Edit the event '${event.event_name}'`,
@@ -298,8 +392,8 @@ export default function EditEvent({ data }) {
     if (cfgError) {
         return (
             <div className="suggestion-page">
-                <Link to="/" className="suggestion-back">
-                    <span className="back-arrow">←</span> Back to Map
+                <Link to={`/view/${event.event_id}`} className="suggestion-back">
+                    <span className="back-arrow">←</span> Back to Event
                 </Link>
                 <div className="suggestion-card glass-panel">
                     <div className="suggestion-status error">Failed to load suggestion config: {cfgError}</div>
@@ -319,8 +413,8 @@ export default function EditEvent({ data }) {
     if (success) {
         return (
             <div className="suggestion-page">
-                <Link to="/" className="suggestion-back">
-                    <span className="back-arrow">←</span> Back to Map
+                <Link to={`/view/${event.event_id}`} className="suggestion-back">
+                    <span className="back-arrow">←</span> Back to Event
                 </Link>
                 <div className="suggestion-card glass-panel">
                     <h1 className="suggestion-title">Thanks!</h1>
@@ -333,8 +427,12 @@ export default function EditEvent({ data }) {
                         <Link to="/my-suggestions" className="suggestion-submit-btn" style={{ textDecoration: "none" }}>
                             View Status
                         </Link>
-                        <Link to="/" className="suggestion-secondary-btn" style={{ textDecoration: "none" }}>
-                            Back to Map
+                        <Link
+                            to={`/view/${event.event_id}`}
+                            className="suggestion-secondary-btn"
+                            style={{ textDecoration: "none" }}
+                        >
+                            Back to Event
                         </Link>
                     </div>
                 </div>
@@ -345,12 +443,16 @@ export default function EditEvent({ data }) {
     const maxMb = (cfg.max_image_bytes / (1024 * 1024)).toFixed(0);
     const acceptList = (cfg.supported_formats ?? []).map((f) => `.${f}`).join(",");
 
-    let dropzoneOverlay = null;
-    if (busy === "uploading") {
-        dropzoneOverlay = "Uploading…";
-    } else if (pickedFile && turnstileToken === null) {
-        dropzoneOverlay = "Waiting for verification…";
-    }
+    // Each dropzone reports on its own files: what is uploading right now,
+    // what is still queued behind it, and whether Turnstile is holding
+    // everything up.
+    const overlayFor = (target) => {
+        const pending = uploadQueue.filter((job) => job.target === target).length;
+        if (pending === 0) return null;
+        if (turnstileToken === null) return "Waiting for verification…";
+        if (uploadQueue[0]?.target !== target) return `Queued… (${pending})`;
+        return pending > 1 ? `Uploading… (${pending} left)` : "Uploading…";
+    };
 
     return (
         <div className="suggestion-page">
@@ -375,8 +477,8 @@ export default function EditEvent({ data }) {
                 onConfirm={performSubmit}
                 onCancel={() => setConfirmOpen(false)}
             />
-            <Link to="/" className="suggestion-back">
-                <span className="back-arrow">←</span> Back to Map
+            <Link to={`/view/${event.event_id}`} className="suggestion-back">
+                <span className="back-arrow">←</span> Back to Event
             </Link>
             <div className="suggestion-card glass-panel">
                 <h1 className="suggestion-title">Suggest a Correction</h1>
@@ -553,11 +655,11 @@ export default function EditEvent({ data }) {
                                 )}
                                 <ImageDropZone
                                     accept={acceptList}
-                                    onSelect={handleFileSelected}
+                                    onSelect={(file) => queueUpload(file, "heading")}
                                     previewSrc={localPreviewUrl ?? uploadedImage?.urls?.preview}
-                                    overlay={dropzoneOverlay}
+                                    overlay={overlayFor("heading")}
                                     onClear={handleClearImage}
-                                    clearable={(pickedFile !== null || uploadedImage !== null) && !busy}
+                                    clearable={(pendingHeadingFile !== null || uploadedImage !== null) && !busy}
                                     placeholder="Drop a replacement image, or click to browse"
                                     hint="Replaces the current heading image"
                                     disabled={busy === "submitting"}
@@ -573,23 +675,90 @@ export default function EditEvent({ data }) {
                                         Suggest removing the current image
                                     </label>
                                 )}
-                                {(event.urlThumb || pickedFile !== null || uploadedImage !== null) && !removeImage && (
-                                    <div className="suggestion-image-source-field">
-                                        <label className="suggestion-field-label" htmlFor="edit-image-source">
-                                            Image Source{" "}
-                                            <span className="suggestion-field-hint">
-                                                (link or credit for the image)
-                                            </span>
-                                        </label>
-                                        <input
-                                            id="edit-image-source"
-                                            className="suggestion-input"
-                                            type="text"
-                                            value={imageSource}
-                                            onChange={(e) => setImageSource(e.target.value)}
-                                            placeholder="https://x.com/… or @artist"
-                                            maxLength={500}
+                                {(event.urlThumb || pendingHeadingFile !== null || uploadedImage !== null) &&
+                                    !removeImage && (
+                                        <div className="suggestion-image-source-field">
+                                            <label className="suggestion-field-label" htmlFor="edit-image-source">
+                                                Image Source{" "}
+                                                <span className="suggestion-field-hint">
+                                                    (link or credit for the image)
+                                                </span>
+                                            </label>
+                                            <input
+                                                id="edit-image-source"
+                                                className="suggestion-input"
+                                                type="text"
+                                                value={imageSource}
+                                                onChange={(e) => setImageSource(e.target.value)}
+                                                placeholder="https://x.com/… or @artist"
+                                                maxLength={500}
+                                            />
+                                        </div>
+                                    )}
+                            </div>
+
+                            {existingMedia.length > 0 && (
+                                <div className="suggestion-field">
+                                    <span className="suggestion-field-label">
+                                        Current Media{" "}
+                                        <span className="suggestion-field-hint">
+                                            ({existingMedia.length}) · edit the details or mark a row for removal
+                                        </span>
+                                    </span>
+                                    <MediaList
+                                        items={existingMedia}
+                                        onChange={handleExistingMediaChange}
+                                        onRemove={handleToggleExistingMediaDelete}
+                                        mode="existing"
+                                        disabled={!!busy}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="suggestion-field">
+                                <span className="suggestion-field-label">
+                                    New Media{" "}
+                                    <span className="suggestion-field-hint">
+                                        (optional · VODs, clips, photos and videos shown on the event page)
+                                    </span>
+                                </span>
+                                <MediaList
+                                    items={newMedia}
+                                    onChange={handleNewMediaChange}
+                                    onRemove={handleNewMediaRemove}
+                                    disabled={!!busy}
+                                />
+                                <div className="suggestion-image-add-block">
+                                    <div className="suggestion-media-add-actions">
+                                        <button
+                                            type="button"
+                                            className="suggestion-media-add-link"
+                                            onClick={() => setNewMedia((prev) => [...prev, emptyLinkDraft()])}
+                                            disabled={!!busy}
+                                        >
+                                            + Add a link
+                                        </button>
+                                        <span className="suggestion-field-hint">
+                                            or upload files below (up to {maxMb} MB ·{" "}
+                                            {(cfg.supported_formats ?? []).join(", ")})
+                                        </span>
+                                    </div>
+                                    <div className="suggestion-image-add-dropzone">
+                                        <ImageDropZone
+                                            accept={acceptList}
+                                            multiple
+                                            onSelect={(file) => queueUpload(file, "media")}
+                                            previewSrc={null}
+                                            overlay={overlayFor("media")}
+                                            placeholder="Drop photos or videos, or click to browse"
+                                            hint="Set the description & credit on each row after upload"
+                                            disabled={busy === "submitting"}
                                         />
+                                    </div>
+                                </div>
+                                {mediaIncomplete && (
+                                    <div className="suggestion-status info">
+                                        Every link needs a URL and a platform before this edit can be submitted.
                                     </div>
                                 )}
                             </div>

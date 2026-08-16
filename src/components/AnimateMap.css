@@ -15,7 +15,7 @@
     opacity: 0.85;
 }
 
-/* Light land is close to the accent in luminance — darker fill + solid white
+/* Light land is close to the accent in luminance: darker fill + solid white
    ring keeps the trail readable. */
 [data-theme="light"] .animate-trail-dot {
     fill: #047857;
