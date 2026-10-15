@@ -13,6 +13,26 @@ import "./View.css";
  */
 
 /**
+ * Keys the platform pill to its brand colour in View.css. A platform the
+ * stylesheet does not know about falls through to the default accent pill.
+ *
+ * @param {string} platform
+ * @returns {string}
+ */
+const platformClass = (platform) => (platform ? `platform-${platform.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : "");
+
+/**
+ * How a credit reads on the card. The card is itself a link, so a credit that
+ * is a URL cannot be another one; it is shown stripped of its scheme instead,
+ * which is also what makes it recognisable at a glance.
+ *
+ * @param {string} credit
+ * @returns {string}
+ */
+const creditLabel = (credit) =>
+    `by ${isUrl(credit) ? credit.replace(/^(?:https?:\/\/)?(?:www\.)?/, "").replace(/\/$/, "") : credit}`;
+
+/**
  * Renders one media link as a card. The source is only made clickable when it
  * really is a URL, so a stray note in the column never becomes a dead link.
  *
@@ -21,13 +41,19 @@ import "./View.css";
  */
 function MediaLinkCard({ item }) {
     const href = item.source.startsWith("www.") ? `https://${item.source}` : item.source;
+    const credit = item.credit?.trim();
     const body = (
         <>
-            <span className="media-link-platform">{item.platform || "Link"}</span>
+            <span className={`media-link-platform ${platformClass(item.platform)}`}>{item.platform || "Link"}</span>
             <span className="media-link-body">
                 {item.description && <span className="media-link-description">{item.description}</span>}
                 <span className="media-link-source">{item.source}</span>
             </span>
+            {credit && (
+                <span className="media-link-credit" title={credit}>
+                    {creditLabel(credit)}
+                </span>
+            )}
         </>
     );
 

@@ -315,6 +315,49 @@ a.media-link:hover {
     border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
+/* Platform pills wear their service's brand colour so the destination reads at
+   a glance. Light mode needs darker shades of each to stay legible on white. */
+.platform-youtube,
+.platform-twitch,
+.platform-twitter,
+.platform-facebook {
+    color: rgb(var(--platform-rgb));
+    background: rgba(var(--platform-rgb), 0.14);
+    border-color: rgba(var(--platform-rgb), 0.3);
+}
+
+.platform-youtube {
+    --platform-rgb: 239, 68, 68;
+}
+
+.platform-twitch {
+    --platform-rgb: 145, 70, 255;
+}
+
+.platform-twitter {
+    --platform-rgb: 29, 155, 240;
+}
+
+.platform-facebook {
+    --platform-rgb: 24, 119, 242;
+}
+
+[data-theme="light"] .platform-youtube {
+    --platform-rgb: 185, 28, 28;
+}
+
+[data-theme="light"] .platform-twitch {
+    --platform-rgb: 109, 40, 217;
+}
+
+[data-theme="light"] .platform-twitter {
+    --platform-rgb: 2, 115, 178;
+}
+
+[data-theme="light"] .platform-facebook {
+    --platform-rgb: 23, 86, 185;
+}
+
 .media-link-body {
     display: flex;
     flex-direction: column;
@@ -329,6 +372,16 @@ a.media-link:hover {
 }
 
 .media-link-source {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-link-credit {
+    flex-shrink: 0;
+    max-width: 30%;
     font-size: 0.78rem;
     color: var(--text-secondary);
     white-space: nowrap;
@@ -363,5 +416,13 @@ a.media-link:hover .media-link-arrow {
 
     .media-link-platform {
         min-width: 0;
+    }
+
+    /* A narrow row has no width to spare beside the description, so the credit
+       drops below the arrow onto a line of its own instead of crushing it. */
+    .media-link-credit {
+        order: 1;
+        flex-basis: 100%;
+        max-width: 100%;
     }
 }

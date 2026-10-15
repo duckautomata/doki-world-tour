@@ -35,6 +35,32 @@ const media = [
         urlWebp: null,
         urlThumb: null,
     },
+    {
+        index: 2,
+        kind: "link",
+        description: "Clip",
+        source: "https://www.twitch.tv/videos/1",
+        platform: "Twitch",
+        credit: "@clipper",
+        media_id: "",
+        media_ext: "",
+        urlOrig: null,
+        urlWebp: null,
+        urlThumb: null,
+    },
+    {
+        index: 3,
+        kind: "link",
+        description: "Thread",
+        source: "https://twitter.com/dokibird/status/2",
+        platform: "Twitter",
+        credit: "https://www.example.com/artists/doki/",
+        media_id: "",
+        media_ext: "",
+        urlOrig: null,
+        urlWebp: null,
+        urlThumb: null,
+    },
 ];
 
 const event = {
@@ -91,6 +117,26 @@ describe("View", () => {
         const link = screen.getByRole("link", { name: /Panel VOD/ });
         expect(link).toHaveAttribute("href", "https://www.youtube.com/watch?v=abc");
         expect(link).toHaveTextContent("YouTube");
+    });
+
+    it("credits a link when it has one, and leaves uncredited links alone", () => {
+        renderView("2026-dokomi");
+        expect(screen.getByRole("link", { name: /Clip/ })).toHaveTextContent("by @clipper");
+        expect(screen.getByRole("link", { name: /Panel VOD/ })).not.toHaveTextContent("by");
+    });
+
+    it("strips the scheme off a credit that is a URL, since the card is already a link", () => {
+        renderView("2026-dokomi");
+        const credit = screen.getByText("by example.com/artists/doki");
+        expect(credit).toHaveAttribute("title", "https://www.example.com/artists/doki/");
+        expect(credit.querySelector("a")).toBeNull();
+    });
+
+    it("colours the platform pill per platform", () => {
+        renderView("2026-dokomi");
+        expect(screen.getByText("YouTube")).toHaveClass("platform-youtube");
+        expect(screen.getByText("Twitch")).toHaveClass("platform-twitch");
+        expect(screen.getByText("Twitter")).toHaveClass("platform-twitter");
     });
 
     it("opens the media modal on an uploaded item", () => {

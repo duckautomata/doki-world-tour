@@ -1,12 +1,14 @@
 import { useEffect, useLayoutEffect, useState } from "react";
-import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { loadEventData } from "./utils/dataLoader";
 import { useAppStore } from "./store/store";
+import { hubUrl } from "./config";
 import UpdateAlert from "./components/UpdateAlert";
 import EnvironmentBadge from "./components/EnvironmentBadge";
 import MockApiBadge from "./components/MockApiBadge";
 import ScrollToTop from "./components/ScrollToTop";
 import SuggestionsDropdown from "./components/SuggestionsDropdown";
+import SiteMenu from "./components/SiteMenu";
 import "./App.css";
 
 export default function App() {
@@ -74,11 +76,10 @@ export default function App() {
             <UpdateAlert />
             <header className="top-nav">
                 <div className="brand-group">
-                    <Link to="/" className="nav-brand">
-                        Doki&apos;s World Tour
-                    </Link>
-                    <EnvironmentBadge />
-                    <MockApiBadge />
+                    {/* A single site, so the menu only holds "All my sites". */}
+                    <SiteMenu title="Doki's World Tour" hubUrl={hubUrl} />
+                    <EnvironmentBadge className="desktop-only" />
+                    <MockApiBadge className="desktop-only" />
                 </div>
                 <nav className="nav-links">
                     <div className="nav-main-links">

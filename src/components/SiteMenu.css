@@ -1,0 +1,210 @@
+/* Shared by every duck-automata.com site (see SiteMenu.jsx). Only uses the colour
+   variables every site's index.css defines. */
+
+.site-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.site-menu-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.site-menu-grid svg {
+    width: 18px;
+    height: 18px;
+}
+
+.site-menu-grid:hover {
+    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    color: var(--text-primary);
+}
+
+.site-menu-grid[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--accent);
+}
+
+.site-menu-grid:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Font, size and colour come from the site's .nav-brand. */
+.site-menu-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    line-height: inherit;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.site-menu-title:hover {
+    color: var(--accent-hover);
+}
+
+.site-menu-title:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.site-menu-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    z-index: 200;
+    box-sizing: border-box;
+    min-width: 240px;
+    /* Fits a 320px phone, where the grid button sits 1rem from the edge. */
+    max-width: calc(100vw - 2rem);
+    padding: 6px;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    /* The light themes' overlay colour is slightly see-through, and a backdrop-filter can't
+       blur through the header's own, so the page colour underneath keeps the panel opaque. */
+    background: linear-gradient(var(--modal-overlay-bg), var(--modal-overlay-bg)), var(--bg-color);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    animation: siteMenuFade 0.2s ease;
+}
+
+@keyframes siteMenuFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .site-menu-panel {
+        animation: none;
+    }
+}
+
+.site-menu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* The divider between the sites and "All my sites". Only shown when there are sites above it. */
+.site-menu-site + .site-menu-hub {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--panel-border);
+}
+
+.site-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.site-menu-item:hover {
+    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    color: var(--text-primary);
+}
+
+.site-menu-item[aria-current] {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.site-menu-item[aria-current]:hover {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.site-menu-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.site-menu-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.site-menu-hub-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.site-menu-hub-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.site-menu-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.site-menu-item-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.site-menu-item-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.site-menu-end {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.site-menu-check {
+    color: var(--accent);
+}
+
+.site-menu-check svg {
+    width: 18px;
+    height: 18px;
+}
+
+.site-menu-arrow {
+    color: var(--text-secondary);
+}
+
+.site-menu-arrow svg {
+    width: 14px;
+    height: 14px;
+}
