@@ -165,6 +165,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    /* Let the tags below crop instead of pushing the info bar wider. */
+    min-width: 0;
 }
 
 .modal-title {
@@ -194,6 +196,45 @@
     background: rgba(16, 185, 129, 0.15);
     color: var(--accent);
     border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* The credit shows the URL itself, so cap how much room it can take and crop
+   the tail of anything longer. The full URL stays in the title tooltip. */
+.source-tag {
+    min-width: 0;
+    max-width: min(100%, 22rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(16, 185, 129, 0.5);
+    text-underline-offset: 2px;
+}
+
+.source-link:hover {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--accent-hover);
+    text-decoration-color: var(--accent-hover);
+}
+
+.source-link-icon {
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.source-link-url {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .modal-actions {

@@ -155,12 +155,12 @@ describe("Home", () => {
         expect(screen.getAllByRole("link", { name: "View details" })[0]).toHaveAttribute("href", "/view/dokomi-2026");
     });
 
-    it("opens the image modal from a card image, showing its source link", () => {
+    it("opens the image modal from a card image, showing its credit link", () => {
         renderHome();
         openList();
         fireEvent.click(screen.getByRole("button", { name: "View image for Rewind Time" }));
         expect(screen.getByRole("button", { name: /Download Original/ })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Source/ })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: /Credit/ })).toHaveAttribute(
             "href",
             "https://x.com/dokibird/status/123",
         );

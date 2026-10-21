@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import "./ImageModal.css";
 import { LOG_ERROR } from "../utils/debug";
-import { isUrl } from "../utils/textUtils";
+import { isUrl, formatUrlForDisplay, toHref } from "../utils/textUtils";
 
 /**
  * @typedef {import("../store/types").MediaItem} MediaItem
@@ -256,14 +256,15 @@ export default function ImageModal({ items, selectedIndex, onClose, onNavigate }
                             {credit &&
                                 (isUrl(credit) ? (
                                     <a
-                                        href={credit.startsWith("www.") ? `https://${credit}` : credit}
+                                        href={toHref(credit)}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="modal-tag source-tag"
-                                        style={{ textDecoration: "none" }}
+                                        className="modal-tag source-tag source-link"
+                                        title={credit}
+                                        aria-label={`Credit: ${credit}`}
                                     >
-                                        <span style={{ marginRight: "4px" }}>🔗</span>
-                                        Source
+                                        <span className="source-link-icon">🔗</span>
+                                        <span className="source-link-url">{formatUrlForDisplay(credit)}</span>
                                     </a>
                                 ) : (
                                     <span className="modal-tag source-tag" title={credit}>

@@ -109,7 +109,7 @@ describe("Animate", () => {
         fireEvent.change(screen.getByLabelText("Timeline position"), { target: { value: "1" } });
         fireEvent.click(screen.getByRole("button", { name: "View image for Second Con" }));
         expect(screen.getByRole("button", { name: /Download Original/ })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Source/ })).toHaveAttribute("href", "https://x.com/artist/status/9");
+        expect(screen.getByRole("link", { name: /Credit/ })).toHaveAttribute("href", "https://x.com/artist/status/9");
     });
 
     it("shows a placeholder instead of an image button for imageless events", () => {
