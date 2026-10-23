@@ -13,6 +13,7 @@ vi.mock("../utils/contentApi", () => ({
             turnstile_enabled: false,
             allowed_sites: ["doki-world-tour"],
             max_image_bytes: 26214400,
+            max_video_bytes: 104857600,
             supported_formats: ["png", "jpg", "webp", "mp4"],
         }),
     ),

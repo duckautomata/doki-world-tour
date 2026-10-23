@@ -441,6 +441,9 @@ export default function EditEvent({ data }) {
     }
 
     const maxMb = (cfg.max_image_bytes / (1024 * 1024)).toFixed(0);
+    // An older server reports a single cap; a newer one gives video its own, larger one.
+    const maxVideoMb = ((cfg.max_video_bytes ?? cfg.max_image_bytes) / (1024 * 1024)).toFixed(0);
+    const sizeHint = maxVideoMb === maxMb ? `up to ${maxMb} MB` : `images up to ${maxMb} MB · videos up to ${maxVideoMb} MB`;
     const acceptList = (cfg.supported_formats ?? []).map((f) => `.${f}`).join(",");
 
     // Each dropzone reports on its own files: what is uploading right now,
@@ -644,7 +647,7 @@ export default function EditEvent({ data }) {
                                 <span className="suggestion-field-label">
                                     Heading Image{" "}
                                     <span className="suggestion-field-hint">
-                                        (up to {maxMb} MB · {(cfg.supported_formats ?? []).join(", ")})
+                                        ({sizeHint} · {(cfg.supported_formats ?? []).join(", ")})
                                     </span>
                                 </span>
                                 {event.urlThumb && !uploadedImage && !removeImage && (
@@ -739,7 +742,7 @@ export default function EditEvent({ data }) {
                                             + Add a link
                                         </button>
                                         <span className="suggestion-field-hint">
-                                            or upload files below (up to {maxMb} MB ·{" "}
+                                            or upload files below ({sizeHint} ·{" "}
                                             {(cfg.supported_formats ?? []).join(", ")})
                                         </span>
                                     </div>

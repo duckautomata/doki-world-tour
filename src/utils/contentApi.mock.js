@@ -7,6 +7,7 @@ const MOCK_CONFIG = Object.freeze({
     turnstile_enabled: true,
     allowed_sites: ["doki-world-tour", "dokimotes", "dokinomicon"],
     max_image_bytes: 26214400,
+    max_video_bytes: 104857600,
     supported_formats: ["jpg", "jpeg", "png", "webp", "avif", "gif", "mp4"],
     public_url_prefix: "https://cdn.mock",
     pending_prefix: "_suggestions/_pending/",
