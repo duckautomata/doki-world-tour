@@ -368,7 +368,8 @@ export default function AddEvent() {
     const maxMb = (cfg.max_image_bytes / (1024 * 1024)).toFixed(0);
     // An older server reports a single cap; a newer one gives video its own, larger one.
     const maxVideoMb = ((cfg.max_video_bytes ?? cfg.max_image_bytes) / (1024 * 1024)).toFixed(0);
-    const sizeHint = maxVideoMb === maxMb ? `up to ${maxMb} MB` : `images up to ${maxMb} MB · videos up to ${maxVideoMb} MB`;
+    const sizeHint =
+        maxVideoMb === maxMb ? `up to ${maxMb} MB` : `images up to ${maxMb} MB · videos up to ${maxVideoMb} MB`;
     const acceptList = (cfg.supported_formats ?? []).map((f) => `.${f}`).join(",");
 
     // Each dropzone reports on its own files: what is uploading right now,
@@ -591,8 +592,7 @@ export default function AddEvent() {
                                     + Add a link
                                 </button>
                                 <span className="suggestion-field-hint">
-                                    or upload files below ({sizeHint} · {(cfg.supported_formats ?? []).join(", ")}
-                                    )
+                                    or upload files below ({sizeHint} · {(cfg.supported_formats ?? []).join(", ")})
                                 </span>
                             </div>
                             <div className="suggestion-image-add-dropzone">
